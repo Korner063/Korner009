@@ -1,0 +1,2248 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>แอดเทนแดนซ์ - ระบบเช็คชื่อพนักงาน</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Plus Jakarta Sans -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SheetJS for Excel export -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                    },
+                    colors: {
+                        sidebar: '#0b1320',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8fafc;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="bg-[#f8fafc] text-slate-800 antialiased min-h-screen flex flex-col md:flex-row">
+
+    <aside class="w-full md:w-64 bg-[#0b1320] text-slate-300 flex flex-col justify-between shrink-0 shadow-lg">
+        <div>
+            <!-- Logo / Brand Header -->
+            <div class="p-5 flex items-center space-x-3 border-b border-slate-800/80">
+                <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-md shadow-indigo-500/30">
+                    <i class="fa-solid fa-clipboard-user text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-white font-bold text-base tracking-wide">แอดเทนแดนซ์</h1>
+                    <p class="text-xs text-slate-400">ระบบเช็คชื่อพนักงาน</p>
+                </div>
+            </div>
+
+            <!-- Navigation Links -->
+            <nav class="p-3 space-y-1.5" id="sidebar-nav">
+                <a href="#" onclick="switchTab('dashboard')" data-tab="dashboard" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-xl bg-indigo-600 text-white font-medium shadow-sm transition-all">
+                    <img src="logo-dashboard.png" alt="" class="w-20 h-auto shrink-0">
+                    <span>แดชบอร์ด</span>
+                </a>
+                <a href="#" onclick="switchTab('checkin')" data-tab="checkin" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800/70 hover:text-white transition-all">
+                    <i class="fa-solid fa-calendar-check w-5 text-center"></i>
+                    <span>เช็คชื่อวันนี้</span>
+                </a>
+                <a href="#" onclick="switchTab('employees')" data-tab="employees" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800/70 hover:text-white transition-all">
+                    <i class="fa-solid fa-users w-5 text-center"></i>
+                    <span>พนักงาน</span>
+                </a>
+                <a href="#" onclick="switchTab('history')" data-tab="history" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800/70 hover:text-white transition-all">
+                    <i class="fa-solid fa-clock-rotate-left w-5 text-center"></i>
+                    <span>ประวัติ</span>
+                </a>
+            </nav>
+        </div>
+
+        <!-- Sidebar Footer -->
+        <div class="p-4 border-t border-slate-800/80 flex items-center space-x-3 bg-[#080e18]">
+            <div class="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center text-white font-semibold text-sm">
+                HR
+            </div>
+            <div class="overflow-hidden">
+                <p class="text-sm font-medium text-white truncate">ฝ่ายทรัพยากรบุคคล</p>
+                <p class="text-xs text-slate-400 truncate">hr@company.com</p>
+            </div>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+        
+        <!-- Top Navigation Header -->
+        <header class="bg-white border-b border-slate-200 px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sticky top-0 z-20 shadow-xs">
+            <div>
+                <h2 id="page-title" class="text-2xl font-bold text-slate-900">แดชบอร์ด</h2>
+                <p id="page-subtitle" class="text-sm text-slate-500 mt-0.5">ภาพรวมการเช็คชื่อวันที่ 5 ตุลาคม 2569</p>
+            </div>
+            <div class="flex items-center space-x-3">
+                <button onclick="exportAttendanceToExcel()" class="inline-flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-medium text-sm shadow-sm transition-all cursor-pointer">
+                    <i class="fa-solid fa-file-excel"></i>
+                    <span>ส่งออก Excel</span>
+                </button>
+                <button onclick="switchTab('checkin')" class="inline-flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-medium text-sm shadow-sm transition-all cursor-pointer">
+                    <i class="fa-solid fa-calendar-check"></i>
+                    <span>เช็คชื่อวันนี้</span>
+                </button>
+            </div>
+        </header>
+
+        <div class="p-6 max-w-7xl w-full mx-auto space-y-6">
+
+            <!-- TAB 1: DASHBOARD VIEW -->
+            <div id="view-dashboard" class="tab-content space-y-6">
+
+                <div id="dashboard-department-tabs" class="flex flex-wrap gap-2" role="tablist" aria-label="เลือกแผนกในแดชบอร์ด"></div>
+                
+                <!-- Stat Cards Row 1 -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-5">
+                    <!-- มาทำงาน -->
+                    <button type="button" onclick="openAttendanceDetails('status', 'มาทำงาน', this)" class="w-full text-left bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between cursor-pointer hover:border-emerald-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+                        <div>
+                            <p class="text-sm font-medium text-slate-500">มาทำงาน</p>
+                            <h3 id="stat-present" class="text-3xl font-extrabold text-slate-900 mt-1">0</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl border border-emerald-100">
+                            <i class="fa-solid fa-circle-check"></i>
+                        </div>
+                    </button>
+
+                    <!-- มาสาย -->
+                    <button type="button" onclick="openAttendanceDetails('status', 'สาย', this)" class="w-full text-left bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between cursor-pointer hover:border-amber-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition">
+                        <div>
+                            <p class="text-sm font-medium text-slate-500">มาสาย</p>
+                            <h3 id="stat-late" class="text-3xl font-extrabold text-slate-900 mt-1">0</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center text-xl border border-amber-100">
+                            <i class="fa-solid fa-clock"></i>
+                        </div>
+                    </button>
+
+                    <!-- ขาดงาน -->
+                    <button type="button" onclick="openAttendanceDetails('status', 'ขาดงาน', this)" class="w-full text-left bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between cursor-pointer hover:border-rose-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-rose-500 transition">
+                        <div>
+                            <p class="text-sm font-medium text-slate-500">ขาดงาน</p>
+                            <h3 id="stat-absent" class="text-3xl font-extrabold text-slate-900 mt-1">0</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl bg-rose-50 text-rose-500 flex items-center justify-center text-xl border border-rose-100">
+                            <i class="fa-solid fa-circle-xmark"></i>
+                        </div>
+                    </button>
+
+                    <!-- ลา -->
+                    <button type="button" onclick="openAttendanceDetails('leave', '', this)" class="w-full text-left bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between cursor-pointer hover:border-sky-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-sky-500 transition">
+                        <div>
+                            <p class="text-sm font-medium text-slate-500">ลาทั้งหมด</p>
+                            <h3 id="stat-leave" class="text-3xl font-extrabold text-slate-900 mt-1">0</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl bg-sky-50 text-sky-500 flex items-center justify-center text-xl border border-sky-100">
+                            <i class="fa-solid fa-calendar-minus"></i>
+                        </div>
+                    </button>
+
+                    <button type="button" onclick="openAttendanceDetails('status', 'ลาป่วย', this)" class="w-full text-left bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between cursor-pointer hover:border-sky-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-sky-500 transition">
+                        <div>
+                            <p class="text-sm font-medium text-slate-500">ลาป่วย</p>
+                            <h3 id="stat-sick-leave" class="text-3xl font-extrabold text-slate-900 mt-1">0</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl bg-sky-50 text-sky-500 flex items-center justify-center text-xl border border-sky-100">
+                            <i class="fa-solid fa-heart-pulse"></i>
+                        </div>
+                    </button>
+
+                    <button type="button" onclick="openAttendanceDetails('status', 'ลากิจ', this)" class="w-full text-left bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between cursor-pointer hover:border-cyan-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-cyan-500 transition">
+                        <div>
+                            <p class="text-sm font-medium text-slate-500">ลากิจ</p>
+                            <h3 id="stat-personal-leave" class="text-3xl font-extrabold text-slate-900 mt-1">0</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center text-xl border border-cyan-100">
+                            <i class="fa-solid fa-calendar-day"></i>
+                        </div>
+                    </button>
+
+                    <button type="button" onclick="openAttendanceDetails('status', 'ลาพักร้อน', this)" class="w-full text-left bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between cursor-pointer hover:border-orange-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-orange-500 transition">
+                        <div>
+                            <p class="text-sm font-medium text-slate-500">ลาพักร้อน</p>
+                            <h3 id="stat-vacation-leave" class="text-3xl font-extrabold text-slate-900 mt-1">0</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center text-xl border border-orange-100">
+                            <i class="fa-solid fa-umbrella-beach"></i>
+                        </div>
+                    </button>
+                </div>
+
+                <!-- Stat Cards Row 2 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+                    <!-- อัตราการมาทำงานวันนี้ -->
+                    <button type="button" onclick="openAttendanceDetails('attendanceRate', '', this)" class="w-full text-left bg-white p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between cursor-pointer hover:border-emerald-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+                        <div>
+                            <div class="flex items-center justify-between">
+                                <p class="text-sm font-medium text-slate-500">อัตราการมาทำงานวันนี้</p>
+                                <span class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm">
+                                    <i class="fa-solid fa-arrow-trend-up"></i>
+                                </span>
+                            </div>
+                            <h3 id="stat-rate" class="text-3xl font-extrabold text-slate-900 mt-2">0%</h3>
+                        </div>
+                        <div class="mt-4">
+                            <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                                <div id="stat-rate-bar" class="bg-emerald-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                            </div>
+                            <div class="flex justify-between items-center text-xs text-slate-400 mt-2">
+                                <span id="stat-checked-count">เช็คชื่อแล้ว 0 คน</span>
+                                <span id="stat-total-inline">รวมพนักงาน 0 คน</span>
+                            </div>
+                        </div>
+                    </button>
+
+                    <!-- ทำ OT วันนี้ -->
+                    <button type="button" onclick="openAttendanceDetails('overtime', '', this)" class="w-full text-left bg-white p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between cursor-pointer hover:border-indigo-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                        <div>
+                            <div class="flex items-center justify-between">
+                                <p class="text-sm font-medium text-slate-500">ทำ OT วันนี้</p>
+                                <span class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-sm">
+                                    <i class="fa-solid fa-bolt"></i>
+                                </span>
+                            </div>
+                            <h3 id="stat-ot" class="text-3xl font-extrabold text-slate-900 mt-2">0 <span class="text-lg font-normal text-slate-500">คน</span></h3>
+                        </div>
+                        <div class="mt-4 pt-4 border-t border-slate-100">
+                            <p id="stat-total-ot" class="text-xs text-slate-400">พนักงานทั้งหมด 0 คน</p>
+                        </div>
+                    </button>
+
+                    <button type="button" onclick="openAttendanceDetails('noOvertime', '', this)" class="w-full text-left bg-white p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between cursor-pointer hover:border-slate-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-slate-500 transition">
+                        <div>
+                            <div class="flex items-center justify-between">
+                                <p class="text-sm font-medium text-slate-500">ไม่ทำ OT วันนี้</p>
+                                <span class="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center text-sm">
+                                    <i class="fa-solid fa-person-circle-minus"></i>
+                                </span>
+                            </div>
+                            <h3 id="stat-ot-no" class="text-3xl font-extrabold text-slate-900 mt-2">0 <span class="text-lg font-normal text-slate-500">คน</span></h3>
+                        </div>
+                        <p class="mt-4 pt-4 border-t border-slate-100 text-xs text-slate-400">กดเพื่อดูรายชื่อพนักงาน</p>
+                    </button>
+
+                    <!-- พนักงานทั้งหมด -->
+                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
+                        <button type="button" aria-label="ดูรายละเอียดพนักงานทั้งหมด" onclick="openAttendanceDetails('all', '', this)" class="w-full text-left cursor-pointer hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-slate-500 rounded-xl transition">
+                            <div class="flex items-center justify-between">
+                                <p class="text-sm font-medium text-slate-500">พนักงานทั้งหมด</p>
+                                <span class="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center text-sm">
+                                    <i class="fa-solid fa-users"></i>
+                                </span>
+                            </div>
+                            <h3 id="stat-total-employees" class="text-3xl font-extrabold text-slate-900 mt-2">0 <span class="text-lg font-normal text-slate-500">คน</span></h3>
+                        </button>
+                        <div class="mt-4">
+                            <button onclick="switchTab('checkin')" class="w-full py-2.5 bg-[#0b1320] hover:bg-slate-800 text-white rounded-xl font-medium text-sm transition shadow-sm cursor-pointer flex items-center justify-center space-x-2">
+                                <i class="fa-solid fa-play text-xs"></i>
+                                <span>เริ่มเช็คชื่อวันนี้</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Table Section -->
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                    <div class="p-5 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div>
+                            <h3 class="font-bold text-slate-900 text-lg">บันทึกการเช็คชื่อรายเดือน</h3>
+                            <p id="dashboard-attendance-month-label" class="text-xs text-slate-500">รายชื่อและสถานะการเช็คชื่อรายวันในเดือนที่เลือก</p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <label class="flex items-center gap-2 text-xs font-medium text-slate-500">
+                                <span>เดือน</span>
+                                <input id="dashboard-history-month" type="month" onchange="renderDashboardTable(document.getElementById('dashboard-search').value, this.value)" class="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:border-indigo-500">
+                            </label>
+                            <div class="relative">
+                                <input type="text" id="dashboard-search" onkeyup="filterDashboardTable()" placeholder="ค้นหาชื่อ หรือ รหัสพนักงาน..." class="pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 w-60">
+                                <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Table -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <tbody id="dashboard-table-body" class="divide-y divide-slate-100 text-sm">
+                                <!-- Populated dynamically by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- TAB 2: CHECK-IN TODAY VIEW -->
+            <div id="view-checkin" class="tab-content hidden space-y-6">
+                
+                <!-- Status Header Banner & Save Button -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                    <!-- Status summary pills -->
+                    <div class="flex flex-wrap items-center gap-2 text-xs font-semibold">
+                        <span class="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-100">มา: <span id="pill-present">0</span></span>
+                        <span class="px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 border border-amber-100">สาย: <span id="pill-late">0</span></span>
+                        <span class="px-3 py-1.5 rounded-lg bg-rose-50 text-rose-700 border border-rose-100">ขาด: <span id="pill-absent">0</span></span>
+                        <span class="px-3 py-1.5 rounded-lg bg-sky-50 text-sky-700 border border-sky-100">ลา: <span id="pill-leave">0</span></span>
+                        <span class="px-3 py-1.5 rounded-lg bg-sky-50 text-sky-700 border border-sky-100">ลาป่วย: <span id="pill-sick-leave">0</span></span>
+                        <span class="px-3 py-1.5 rounded-lg bg-cyan-50 text-cyan-700 border border-cyan-100">ลากิจ: <span id="pill-personal-leave">0</span></span>
+                        <span class="px-3 py-1.5 rounded-lg bg-orange-50 text-orange-700 border border-orange-100">ลาพักร้อน: <span id="pill-vacation-leave">0</span></span>
+                        <span class="px-3 py-1.5 rounded-lg bg-purple-50 text-purple-700 border border-purple-100">ครึ่งวัน: <span id="pill-half">0</span></span>
+                        <span class="px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-100">ทำ OT: <span id="pill-ot-yes">0</span></span>
+                        <span class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 border border-slate-200">ไม่ทำ OT: <span id="pill-ot-no">0</span></span>
+                    </div>
+                    <!-- Save Button -->
+                    <button onclick="saveAttendance()" class="inline-flex items-center justify-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-medium text-sm shadow-sm transition cursor-pointer">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                        <span>บันทึกทั้งหมด</span>
+                    </button>
+                </div>
+
+                <!-- Search and Filter Bar -->
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+                    <div class="relative">
+                        <input type="text" id="checkin-search" onkeyup="renderCheckInList()" placeholder="ค้นหาชื่อหรือรหัสพนักงาน..." class="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-slate-400 text-sm"></i>
+                    </div>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        <button type="button" onclick="setAllEmployeesPresent()" class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700">
+                            <i class="fa-solid fa-check"></i><span>มาทั้งหมด</span>
+                        </button>
+                        <button type="button" onclick="setAllEmployeesOvertime()" class="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700">
+                            <i class="fa-solid fa-bolt"></i><span>ทำ OT ทั้งหมด</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Employee Check-in List Container -->
+                <div id="checkin-list-container" class="space-y-3">
+                    <!-- Populated dynamically by JS -->
+                </div>
+
+            </div>
+
+            <!-- TAB 3: EMPLOYEES VIEW -->
+            <div id="view-employees" class="tab-content hidden space-y-6">
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+                    <div>
+                        <h3 id="employees-total-heading" class="text-lg font-bold text-slate-900">รายชื่อพนักงานทั้งหมด</h3>
+                        <p class="text-xs text-slate-500">จัดการรายชื่อ แผนก และสถานะพนักงาน</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="openDepartmentModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition cursor-pointer">
+                            <i class="fa-solid fa-folder-plus mr-2"></i> เพิ่มแผนก
+                        </button>
+                        <button onclick="openEmployeeModal('create', null, selectedDepartmentTab === 'ทั้งหมด' ? '' : selectedDepartmentTab)" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition cursor-pointer">
+                            <i class="fa-solid fa-user-plus mr-2"></i> เพิ่มพนักงาน
+                        </button>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+                    <div class="relative">
+                        <input id="employee-search" type="text" oninput="renderMaterialsEmployees()" placeholder="ค้นหาชื่อ / รหัส / แผนก..." class="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-slate-400 text-sm"></i>
+                    </div>
+                </div>
+                <div id="department-tabs" class="flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="แผนกพนักงาน"></div>
+                <div id="department-list" class="space-y-5"></div>
+                <div id="resignation-history" class="space-y-3"></div>
+            </div>
+
+            <div id="department-modal" class="hidden fixed inset-0 z-40 bg-slate-900/50 p-4 flex items-center justify-center" onclick="if (event.target === this) closeDepartmentModal()">
+                <form onsubmit="createDepartment(event)" class="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
+                    <div class="p-5 border-b border-slate-200 flex items-center justify-between">
+                        <div>
+                            <h3 class="font-bold text-slate-900">เพิ่มแผนก</h3>
+                            <p class="text-xs text-slate-500 mt-1">สร้างแผนกก่อน แล้วค่อยเพิ่มพนักงานเข้าหลังจากนี้ได้</p>
+                        </div>
+                        <button type="button" onclick="closeDepartmentModal()" class="w-9 h-9 rounded-lg text-slate-500 hover:bg-slate-100" aria-label="ปิด">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                    <div class="p-5 space-y-4 overflow-y-auto">
+                        <label class="block">
+                            <span class="block text-sm font-medium text-slate-700 mb-1.5">ชื่อแผนก</span>
+                            <input id="new-department-name" type="text" maxlength="80" required class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500" placeholder="เช่น ฝ่ายคลังสินค้า">
+                        </label>
+                        <div>
+                            <label for="department-employee-search" class="block text-sm font-medium text-slate-700 mb-1.5">เลือกพนักงาน (ถ้าต้องการย้ายเข้ากลุ่ม)</label>
+                            <input id="department-employee-search" type="search" oninput="renderDepartmentEmployeeChoices()" class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500" placeholder="ค้นหาชื่อหรือรหัสพนักงาน...">
+                            <div id="department-employee-choices" class="mt-2 max-h-56 overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100"></div>
+                            <p id="department-selection-count" class="text-xs text-slate-500 mt-2">สามารถเลือกพนักงานเพื่อย้ายเข้ากลุ่มได้ตามต้องการ</p>
+                        </div>
+                    </div>
+                    <div class="p-5 border-t border-slate-200 flex justify-end gap-2">
+                        <button type="button" onclick="closeDepartmentModal()" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100">ยกเลิก</button>
+                        <button type="submit" class="px-4 py-2 rounded-xl text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">บันทึกแผนก</button>
+                    </div>
+                </form>
+            </div>
+
+            <div id="employee-modal" class="hidden fixed inset-0 z-40 bg-slate-900/50 p-4 flex items-center justify-center" onclick="if (event.target === this) closeEmployeeModal()">
+                <form onsubmit="createEmployee(event)" class="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+                    <input id="employee-form-mode" type="hidden" value="create">
+                    <input id="employee-edit-id" type="hidden" value="">
+                    <div class="p-5 border-b border-slate-200 flex items-center justify-between">
+                        <div>
+                            <h3 id="employee-modal-title" class="font-bold text-slate-900">เพิ่มพนักงาน</h3>
+                            <p id="employee-modal-subtitle" class="text-xs text-slate-500 mt-1">กรอกข้อมูลและเลือกแผนกที่พนักงานจะเข้าทำงาน</p>
+                        </div>
+                        <button type="button" onclick="closeEmployeeModal()" class="w-9 h-9 rounded-lg text-slate-500 hover:bg-slate-100" aria-label="ปิด">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                    <div class="p-5 space-y-4 overflow-y-auto">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <label class="block">
+                                <span class="block text-sm font-medium text-slate-700 mb-1.5">ชื่อ-นามสกุล</span>
+                                <input id="new-employee-name" type="text" maxlength="120" required class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500" placeholder="เช่น สมชาย ใจดี">
+                            </label>
+                            <label class="block">
+                                <span class="block text-sm font-medium text-slate-700 mb-1.5">รหัสพนักงาน</span>
+                                <input id="new-employee-code" type="text" maxlength="30" required class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500" placeholder="เช่น R26001">
+                            </label>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <label class="block">
+                                <span class="block text-sm font-medium text-slate-700 mb-1.5">ชื่อเล่น</span>
+                                <input id="new-employee-nickname" type="text" maxlength="50" class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500" placeholder="เช่น โอ๋">
+                            </label>
+                            <label class="block">
+                                <span class="block text-sm font-medium text-slate-700 mb-1.5">ตำแหน่ง</span>
+                                <input id="new-employee-position" type="text" maxlength="80" class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500" placeholder="เช่น พนักงานจัดส่ง, หัวหน้าวัสดุ">
+                            </label>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <label class="block">
+                                <span class="block text-sm font-medium text-slate-700 mb-1.5">วันที่เริ่มงาน</span>
+                                <input id="new-employee-hire-date" type="date" class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500">
+                            </label>
+                            <label class="block">
+                                <span class="block text-sm font-medium text-slate-700 mb-1.5">Subcontract</span>
+                                <input id="new-employee-subcontract" type="text" maxlength="50" class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500" placeholder="เช่น TERAHOP">
+                            </label>
+                        </div>
+                        <label class="block">
+                            <span class="block text-sm font-medium text-slate-700 mb-1.5">แผนก</span>
+                            <select id="new-employee-department" class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500">
+                                <option value="">-- เลือกแผนก --</option>
+                            </select>
+                        </label>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <label class="block">
+                                <span class="block text-sm font-medium text-slate-700 mb-1.5">สายรถ</span>
+                                <input id="new-employee-commute" type="text" maxlength="80" class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500" placeholder="เช่น ตลาดลาดพร้าว">
+                            </label>
+                            <label class="block">
+                                <span class="block text-sm font-medium text-slate-700 mb-1.5">จุดขึ้นรถ</span>
+                                <input id="new-employee-pickup" type="text" maxlength="80" class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500" placeholder="เช่น ตลาดลาดพร้าว">
+                            </label>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <label class="block">
+                                <span class="block text-sm font-medium text-slate-700 mb-1.5">เบอร์โทร</span>
+                                <input id="new-employee-phone" type="tel" maxlength="30" class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500" placeholder="เช่น 081-234-5678">
+                            </label>
+                            <label class="block">
+                                <span class="block text-sm font-medium text-slate-700 mb-1.5">ใบเบอร์</span>
+                                <input id="new-employee-phone-card" type="text" maxlength="50" class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500" placeholder="เช่น มีใบเบอร์">
+                            </label>
+                        </div>
+                    </div>
+                    <div class="p-5 border-t border-slate-200 flex justify-end gap-2">
+                        <button type="button" onclick="closeEmployeeModal()" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100">ยกเลิก</button>
+                        <button id="employee-form-submit" type="submit" class="px-4 py-2 rounded-xl text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">เพิ่มพนักงาน</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- TAB 4: HISTORY VIEW -->
+            <div id="view-history" class="tab-content hidden space-y-6">
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
+                    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-5">
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-900 mb-1">ประวัติการเข้างานย้อนหลัง</h3>
+                            <p class="text-xs text-slate-500">ดูบันทึกการเช็คชื่อของทุกวันและเลือกวันย้อนหลังได้ทันที</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <input id="history-date-picker" type="date" class="px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500">
+                            <button type="button" onclick="renderHistoryView(document.getElementById('history-date-picker').value || historySelectedDate)" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition cursor-pointer">ดูประวัติ</button>
+                        </div>
+                    </div>
+
+                    <div id="history-date-list" class="flex flex-wrap gap-2 mb-5"></div>
+                    <div id="history-summary" class="mb-4"></div>
+                    <div id="history-table-container" class="overflow-hidden rounded-xl border border-slate-200"></div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <div id="attendance-details-modal" class="hidden fixed inset-0 z-40 bg-slate-900/50 p-4 flex items-center justify-center" onclick="if (event.target === this) closeAttendanceDetails()">
+        <section role="dialog" aria-modal="true" aria-labelledby="attendance-details-title" class="bg-white rounded-2xl shadow-xl w-full max-w-6xl max-h-[90vh] flex flex-col">
+            <div class="p-5 border-b border-slate-200 flex items-center justify-between gap-4">
+                <div>
+                    <h3 id="attendance-details-title" class="text-lg font-bold text-slate-900"></h3>
+                    <p id="attendance-details-count" class="text-sm text-slate-500 mt-1"></p>
+                </div>
+                <button type="button" onclick="closeAttendanceDetails()" class="w-9 h-9 shrink-0 rounded-lg text-slate-500 hover:bg-slate-100" aria-label="ปิดรายละเอียด">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="p-5 overflow-auto">
+                <div class="overflow-x-auto border border-slate-200 rounded-xl">
+                    <table class="w-full text-left whitespace-nowrap">
+                        <thead class="bg-slate-50 text-xs text-slate-500">
+                            <tr>
+                                <th class="px-4 py-3 font-semibold">รหัส</th>
+                                <th class="px-4 py-3 font-semibold">ชื่อ-นามสกุล</th>
+                                <th class="px-4 py-3 font-semibold">ชื่อเล่น</th>
+                                <th class="px-4 py-3 font-semibold">ตำแหน่ง</th>
+                                <th class="px-4 py-3 font-semibold">แผนก</th>
+                                <th class="px-4 py-3 font-semibold">วันที่เริ่มงาน</th>
+                                <th class="px-4 py-3 font-semibold">Subcontract</th>
+                                <th class="px-4 py-3 font-semibold">สายรถ</th>
+                                <th class="px-4 py-3 font-semibold">จุดขึ้นรถ</th>
+                                <th class="px-4 py-3 font-semibold">เบอร์โทร</th>
+                                <th class="px-4 py-3 font-semibold">ใบเบอร์</th>
+                                <th class="px-4 py-3 font-semibold">สถานะ</th>
+                                <th class="px-4 py-3 font-semibold">OT</th>
+                                <th class="px-4 py-3 font-semibold">หมายเหตุ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attendance-details-body" class="divide-y divide-slate-100 text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-6 right-6 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-xl flex items-center space-x-3 transform translate-y-24 opacity-0 transition-all duration-300 z-50">
+        <i class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
+        <span id="toast-message" class="text-sm font-medium">บันทึกสำเร็จเรียบร้อย</span>
+    </div>
+
+    <script>
+        const employeesData = [
+            { id: 1, code: 'C2571Q', name: 'Taweesak Phobpasat', hireDate: '7/7/2025', nickname: 'เอิร์ต', subcontract: 'TERAHOP', commute: 'ตลาดลาดพร้าว', pickupPoint: 'ตลาดลาดพร้าว', departmentDetail: 'หัวหน้าวัสดุ', phone: '083-7721604', phoneCard: 'มีใบเบอร์' },
+            { id: 2, code: 'R26858', name: 'Jeeradej Sangkhrunea', hireDate: '8/4/2026', nickname: 'อั้ม', subcontract: 'HRD', commute: 'เดินทางมาเอง', pickupPoint: 'เดินทางมาเอง', departmentDetail: 'ผู้ช่วย เตรียมวัสดุ', phone: '065-0042591', phoneCard: 'มีใบเบอร์' },
+            { id: 3, code: 'R26F10', name: 'Watcharapol Simlee', hireDate: '8/5/2026', nickname: 'บิ๊ก', subcontract: 'PS', commute: 'เดินทางมาเอง', pickupPoint: 'เดินทางมาเอง', departmentDetail: 'ผู้ช่วย เตรียมวัสดุ', phone: '062-2476190', phoneCard: 'มีใบเบอร์' },
+            { id: 4, code: 'R2660C', name: 'Nathakorn Kaibuppa', hireDate: '9/8/2026', nickname: 'กร', subcontract: 'HRD', commute: 'นวนคร', pickupPoint: 'นวนคร', departmentDetail: 'ผู้ช่วย เตรียมวัสดุ', phone: '063-0387388', phoneCard: 'มีใบเบอร์' },
+            { id: 5, code: 'R26787', name: 'Thanabadee Oubang', hireDate: '8/4/2026', nickname: 'บอส', subcontract: 'PS', commute: 'บ้านสร้าง', pickupPoint: 'บ้านสร้าง', departmentDetail: 'ผู้ช่วย เตรียมวัสดุ', phone: '080-7846496', phoneCard: 'มีใบเบอร์' },
+            { id: 6, code: 'R262RA', name: 'Chonnawi Suriyasit', hireDate: '25/07/26', nickname: 'จ๊อบ', subcontract: 'PS', commute: 'หน้าวัดสามเรือน', pickupPoint: 'หน้าวัดสามเรือน', departmentDetail: 'ผู้ช่วย เตรียมวัสดุ', phone: '062-2361180', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 7, code: 'R26789', name: 'Pacharapol Savangjiang', hireDate: '8/4/2026', nickname: 'ศิวัส', subcontract: 'PS', commute: 'ตลาดจอมพล-ตลาดคีรี', pickupPoint: 'จอมพล-คีรี', departmentDetail: 'เตรียมวัสดุ', phone: '097-2306848', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 8, code: 'R26F07', name: 'Thana Prommajan', hireDate: '8/5/2026', nickname: 'เจ', subcontract: 'PS', commute: 'นวนคร', pickupPoint: 'นวนคร', departmentDetail: 'เตรียมวัสดุ', phone: '098-8584908', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 9, code: 'C264PC', name: 'Wiwit Waiyajinda', hireDate: '11/2/2026', nickname: 'กว้าง', subcontract: 'PS', commute: 'เดินทางมาเอง', pickupPoint: 'เดินทางมาเอง', departmentDetail: 'เตรียมวัสดุ', phone: '093-7465635', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 10, code: 'R26P96', name: 'Chetsadaphon Chiangchang', hireDate: '3/6/2026', nickname: 'ติ๊ก', subcontract: 'PS', commute: 'เดินทางมาเอง', pickupPoint: 'เดินทางมาเอง', departmentDetail: 'เตรียมวัสดุ', phone: '096-7731504', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 11, code: 'R26U39', name: 'Patthama Utharuan', hireDate: '3/6/2026', nickname: 'ปัท', subcontract: 'PS', commute: 'ลพบุรี พระพุทธบาท', pickupPoint: 'พระบาท', departmentDetail: 'เตรียมวัสดุ', phone: '088-9808106', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 12, code: 'R2608T', name: 'Nichakorn Meecham', hireDate: '8/6/2026', nickname: 'ดา', subcontract: 'PIME', commute: 'อยุธยา', pickupPoint: 'แม่ค้าโคอยุธยา', departmentDetail: 'เตรียมวัสดุ', phone: '064-9852724', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 13, code: 'R262CY', name: 'Sirirat Nuretram', hireDate: '6/7/2026', nickname: 'ตอง', subcontract: 'HRD', commute: 'นวนคร', pickupPoint: 'นวนคร', departmentDetail: 'เตรียมวัสดุ', phone: '098-9489851', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 14, code: 'R262C2', name: 'PHeeraphat Saenthaweesda', hireDate: '1/7/2026', nickname: 'กานต์', subcontract: 'HRD', commute: 'หินกอง', pickupPoint: 'หินกอง', departmentDetail: 'เตรียมวัสดุ', phone: '083-0381515', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 15, code: 'R261ZM', name: 'Tanuput Drkam', hireDate: '1/7/2026', nickname: 'ทิม', subcontract: 'HRD', commute: 'อยุธยา', pickupPoint: 'อยุธยา-โรงนะ', departmentDetail: 'เตรียมวัสดุ', phone: '064-4079982', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 16, code: 'R262TQ', name: 'Tanadol Pranjaroen', hireDate: '25/07/26', nickname: 'บอส', subcontract: 'VDS', commute: 'เดอะสกาย', pickupPoint: 'เดอะสกาย', departmentDetail: 'เตรียมวัสดุ', phone: '085-5857631', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 17, code: 'R262SV', name: 'Kesorn Arunpat', hireDate: '25/07/26', nickname: 'แอม', subcontract: 'RTwoO', commute: 'สะพานลอยโรงนะ ประตู A', pickupPoint: 'สะพานลอยโรงนะ ประตู A', departmentDetail: 'เตรียมวัสดุ', phone: '092-7861271', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 18, code: 'R262SX', name: 'Kamonwan Sangprakhon', hireDate: '25/07/26', nickname: 'ฝน', subcontract: 'RTwoO', commute: 'สะพานลอยโรงนะ ประตู A', pickupPoint: 'สะพานลอยโรงนะ ประตู A', departmentDetail: 'เตรียมวัสดุ', phone: '095-7686821', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 19, code: 'R262TP', name: 'Kiatisak Kongsomcheep', hireDate: '25/07/26', nickname: 'น็อต', subcontract: 'VDS', commute: 'แยกวัดพระญาติ', pickupPoint: 'แยกวัดพระญาติ', departmentDetail: 'เตรียมวัสดุ', phone: '090-7990986', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 20, code: 'R262RK', name: 'Suebsak Tagrudkaew', hireDate: '25/07/26', nickname: 'แป๊ก', subcontract: 'PS', commute: 'เดินทางมาเอง', pickupPoint: 'มาเอง', departmentDetail: 'เตรียมวัสดุ', phone: '095-9807386', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 21, code: 'R262RH', name: 'Phooripat Chumnum', hireDate: '25/07/26', nickname: 'ภู', subcontract: 'PS', commute: 'เดินทางมาเอง', pickupPoint: 'มาเอง', departmentDetail: 'เตรียมวัสดุ', phone: '095-3294713', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 22, code: 'R2606T', name: 'Nongnuch Saengsa', hireDate: '8/6/2026', nickname: 'จุ๋ม', subcontract: 'HRD', commute: 'นวนคร', pickupPoint: 'นครชัย', departmentDetail: 'เตรียมวัสดุ', phone: '064-2857338', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 23, code: 'R262TT', name: 'Wasawat Chanyasirikun', hireDate: '25/07/26', nickname: 'กาย', subcontract: 'VDS', commute: 'บ้านสร้าง', pickupPoint: 'บ้านสร้าง', departmentDetail: 'เตรียมวัสดุ', phone: '097-0032370', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 24, code: 'R2632W', name: 'Amornthep Kanphongsri', hireDate: '31/07/26', nickname: 'ล็อต', subcontract: 'HRD', commute: 'อยุธยา', pickupPoint: 'อยุธยา', departmentDetail: 'เตรียมวัสดุ', phone: '092-9794301', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 25, code: 'R2632S', name: 'Rodsaporn Bandasak', hireDate: '31/07/26', nickname: 'บาว', subcontract: 'HRD', commute: 'เดินทางมาเอง', pickupPoint: 'เดินทางมาเอง', departmentDetail: 'เตรียมวัสดุ', phone: '093-5342806', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 26, code: 'R2630Q', name: 'CHOMKHOUANH XAYYAKEO', hireDate: '31/07/26', nickname: 'ขวัญ', subcontract: 'TERAHOP', commute: 'นวนคร', pickupPoint: '02.นวนคร-ประตูน้ำพระอินทร์', departmentDetail: 'เตรียมวัสดุ', phone: '063-7808648', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 27, code: 'R2630A', name: 'PHENG -', hireDate: '31/07/26', nickname: 'แพง', subcontract: 'TERAHOP', commute: 'อยุธยา', pickupPoint: 'อยุธยา', departmentDetail: 'เตรียมวัสดุ', phone: '096-3423280', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 28, code: 'R262YF', name: 'DET KHOUNTHAVONG', hireDate: '31/07/26', nickname: 'โอม', subcontract: 'TERAHOP', commute: 'คนลาว', pickupPoint: 'คนลาว', departmentDetail: 'เตรียมวัสดุ', phone: '093-9871486', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 29, code: 'R263MV', name: 'Wichian Promngam', hireDate: '8/9/2026', nickname: 'เบาะ', subcontract: 'R20', commute: 'เดินทางมาเอง', pickupPoint: 'มาเอง', departmentDetail: 'เตรียมวัสดุ', phone: '061-1981829', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 30, code: 'R263M9', name: 'Benchawan Kanthasema', hireDate: '8/9/2026', nickname: 'แนน', subcontract: 'R20', commute: 'เดินทางมาเอง', pickupPoint: 'มาเอง', departmentDetail: 'เตรียมวัสดุ', phone: '062-3451710', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 31, code: 'R263KS', name: 'Aujjima Saengjaeng', hireDate: '8/9/2026', nickname: 'แอม', subcontract: 'PIMB', commute: 'วัดจันทร์-ป่าโมก', pickupPoint: 'วัดจันทร์-ป่าโมก', departmentDetail: 'เตรียมวัสดุ', phone: '081-121-6351', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 32, code: 'R263LI', name: 'Kamonchanok Phukhang', hireDate: '8/9/2026', nickname: 'ข้าวปุ้น', subcontract: 'PIMB', commute: 'วัดจันทร์-ป่าโมก', pickupPoint: 'วัดจันทร์-ป่าโมก', departmentDetail: 'เตรียมวัสดุ', phone: '098-0745501', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 33, code: 'R263LD', name: 'Sasinipa Jumpaporn', hireDate: '8/9/2026', nickname: 'เมย์', subcontract: 'PIMB', commute: 'บ้านหมอ', pickupPoint: 'บ้านหมอ', departmentDetail: 'เตรียมวัสดุ', phone: '062-336-5924', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 34, code: 'R263LP', name: 'Tinatda Somdokkeaw', hireDate: '8/9/2026', nickname: 'ปิวตี้', subcontract: 'PIMB', commute: 'สายรถ', pickupPoint: 'สายรถ', departmentDetail: 'เตรียมวัสดุ', phone: '090-9068142', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 35, code: 'R2642L', name: 'Anantaya Khongmueang', hireDate: '8/11/2026', nickname: 'เกด', subcontract: 'VDS', commute: 'นวนคร', pickupPoint: 'นวนคร', departmentDetail: 'เตรียมวัสดุ', phone: '095-7858725', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 36, code: 'R262VM', name: 'Thitiporn Praditkhian', hireDate: '25/07/2026', nickname: 'นริน', subcontract: 'R20', commute: 'อ่างทอง2', pickupPoint: 'อ่างทอง2', departmentDetail: 'เตรียมวัสดุ', phone: '062-3874955', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 37, code: 'R2654B', name: 'Issara Aintarasamrong', hireDate: '26/08/2026', nickname: 'โดนัท', subcontract: 'PIMB', commute: 'แก่งคอย', pickupPoint: 'แก่งคอย', departmentDetail: 'เตรียมวัสดุ', phone: '092-2432032', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 38, code: 'R264XC', name: 'Prawanwit Sawangsree', hireDate: '9/4/2026', nickname: 'บิ๊บ', subcontract: 'PS', commute: '29.แสวงหา-โพธิ์ทอง', pickupPoint: '29.แสวงหา-โพธิ์ทอง', departmentDetail: 'เตรียมวัสดุ', phone: '097-9496727', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 39, code: 'R264Y4', name: 'Natthakan Waeonphet', hireDate: '9/4/2026', nickname: 'เมย์', subcontract: 'HRD', commute: '14.แก่งคอย 1 (โรงเรียนวัดตาลเดี่ยว)', pickupPoint: 'หน้าโรงเรียนแก่งคอย', departmentDetail: 'เตรียมวัสดุ', phone: '084-3975381', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 40, code: 'R264Y2', name: 'Chyangkun Masri', hireDate: '29/8/2026', nickname: 'ตั้ม', subcontract: 'VDS', commute: 'เดินทางมาเอง', pickupPoint: 'มาเอง', departmentDetail: 'เตรียมวัสดุ', phone: '092-3486815', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 41, code: 'R265PN', name: 'Nopphadon Trimongkhon', hireDate: '9/4/2026', nickname: 'เป้า', subcontract: 'VDS', commute: '27.อ่างทอง-สายเอเชีย', pickupPoint: 'แยกบางปะหัน', departmentDetail: 'เตรียมวัสดุ', phone: '062-3290788', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 42, code: 'R265PF', name: 'Wanna Banleng', hireDate: '9/4/2026', nickname: 'เก๋', subcontract: 'VDS', commute: 'แยกป่างิ้ว', pickupPoint: 'แยกป่างิ้ว', departmentDetail: 'เตรียมวัสดุ', phone: '098-1243675', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 43, code: 'R265PJ', name: 'Alisa Boonpong', hireDate: '9/4/2026', nickname: 'ฝน', subcontract: 'VDS', commute: 'เดินทางมาเอง', pickupPoint: 'มาเอง', departmentDetail: 'เตรียมวัสดุ', phone: '080-1685210', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 44, code: 'R265JX', name: 'Chaturawit Nupphaphon', hireDate: '9/4/2026', nickname: 'เป้า', subcontract: 'HRD', commute: 'อยุธยา', pickupPoint: 'อยุธยา-สะพานปรีดา A', departmentDetail: 'เตรียมวัสดุ', phone: '092-4495074', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 45, code: 'R266CH', name: 'Wanatsanan Vicharaphot', hireDate: '9/10/2026', nickname: 'นุ่น', subcontract: 'R20', commute: 'วิหารแดง', pickupPoint: 'โรงพยาบาลวิหารแดง', departmentDetail: 'เตรียมวัสดุ', phone: '099-6890790', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 46, code: 'R266AP', name: 'Khaethariya Khumphuang', hireDate: '9/10/2026', nickname: 'แคท', subcontract: 'JSR', commute: 'บ้านสร้าง', pickupPoint: 'บ้านสร้าง', departmentDetail: 'เตรียมวัสดุ', phone: '084-0473297', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 47, code: 'R266AM', name: 'Tanet Chomham', hireDate: '9/10/2026', nickname: 'เบส', subcontract: 'JSR', commute: 'บ้านสร้าง', pickupPoint: 'บ้านสร้าง', departmentDetail: 'เตรียมวัสดุ', phone: '082-9615631', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 48, code: 'R266BD', name: 'Parwarit Nontasen', hireDate: '9/10/2026', nickname: 'ปาล์ม', subcontract: '', commute: 'วิหารแดง', pickupPoint: 'วิหารแดง', departmentDetail: 'เตรียมวัสดุ', phone: '', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 49, code: 'R266A7', name: 'Phatsakon Sinonhiang', hireDate: '9/10/2026', nickname: 'โค้', subcontract: '', commute: 'นวนคร', pickupPoint: 'นวนคร', departmentDetail: 'เตรียมวัสดุ', phone: '', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 50, code: 'R265NP', name: 'Nuengruethai Sapthong', hireDate: '31/8/2026', nickname: 'ก้อย', subcontract: 'RTwoO', commute: 'เดินทางมาเอง', pickupPoint: 'มาเอง', departmentDetail: 'เตรียมวัสดุ', phone: '089-2372410', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 51, code: 'R265YQ', name: 'Natthawut Sichot', hireDate: '9/8/2026', nickname: 'อาม', subcontract: '', commute: '', pickupPoint: '', departmentDetail: 'เตรียมวัสดุ', phone: '', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 52, code: 'R266SY', name: 'Phannapha Meemongkhol', hireDate: '17/09/2026', nickname: 'บัว', subcontract: '', commute: '', pickupPoint: '', departmentDetail: 'เตรียมวัสดุ', phone: '', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 53, code: 'R266T1', name: 'Nalamol Kangchawee', hireDate: '17/09/2026', nickname: 'บัว', subcontract: '', commute: '', pickupPoint: '', departmentDetail: 'เตรียมวัสดุ', phone: '', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 54, code: 'R266S8', name: 'Sunisa Cauaysri', hireDate: '17/09/2026', nickname: 'จิ๋ว', subcontract: '', commute: '', pickupPoint: '', departmentDetail: 'เตรียมวัสดุ', phone: '', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 55, code: 'R2653K', name: 'Aphichat Chueanak', hireDate: '9/10/2026', nickname: 'เปียร์', subcontract: 'PIMB', commute: 'เดินทางมาเอง', pickupPoint: 'มาเอง', departmentDetail: 'เตรียมวัสดุ', phone: '096-9579889', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 56, code: 'R2657V', name: 'Kritsada Watthanawirot', hireDate: '26/08/2035', nickname: 'แม่ก', subcontract: 'VDS', commute: 'เดินทางมาเอง', pickupPoint: 'มาเอง', departmentDetail: 'เตรียมวัสดุ', phone: '065-5346102', phoneCard: 'ไม่มีใบเบอร์' },
+            { id: 57, code: 'R26A32', name: 'Phatracharinthorn Inprasit', hireDate: '22/01/25', nickname: 'พิม', subcontract: 'PIMB', commute: 'ลพบุรี-พระพุทธบาท', pickupPoint: 'พระบาท-ลพบุรี', departmentDetail: 'เตรียมวัสดุ', phone: '090-3217450', phoneCard: 'มีใบเบอร์' }
+        ].map(employee => ({
+            ...employee,
+            position: 'เตรียมวัสดุ',
+            jobTitle: employee.jobTitle || 'พนักงาน',
+            status: 'ยังไม่เช็คชื่อ',
+            ot: false,
+            otHours: 2,
+            remark: ''
+        }));
+
+        const departmentStorageKey = 'attendance-departments-v1';
+        const attendanceHistoryStorageKey = 'attendance-history-v1';
+        const employeesStorageKey = 'attendance-employees-v1';
+        const resignationHistoryStorageKey = 'attendance-resignations-v1';
+        let departmentNames = ['เตรียมวัสดุ', 'ฝ่ายผลิตและประกอบ'];
+        let selectedDepartmentTab = 'ทั้งหมด';
+        let dashboardDepartmentFilter = 'ทั้งหมด';
+        let selectedDepartmentEmployeeIds = new Set();
+        let attendanceDetailsTrigger = null;
+        let attendanceHistory = {};
+        let employeesResignationHistory = [];
+        let historySelectedDate = formatDateKey(new Date());
+
+        function normalizeEmployeeRecord(emp) {
+            return {
+                ...emp,
+                jobTitle: emp.jobTitle || emp.positionTitle || 'พนักงาน',
+                position: emp.position || emp.departmentDetail || 'เตรียมวัสดุ',
+                status: emp.status || 'ยังไม่เช็คชื่อ',
+                ot: Boolean(emp.ot),
+                otHours: Number(emp.otHours) || 2,
+                remark: emp.remark || '',
+                isResigned: Boolean(emp.isResigned),
+                resignDate: emp.resignDate || '',
+                resignReason: emp.resignReason || ''
+            };
+        }
+
+        function loadEmployeesData() {
+            try {
+                const saved = localStorage.getItem(employeesStorageKey);
+                if (!saved) {
+                    employeesData.forEach(emp => normalizeEmployeeRecord(emp));
+                    return;
+                }
+                const parsed = JSON.parse(saved);
+                if (!Array.isArray(parsed)) throw new Error('Invalid employee data');
+                employeesData.splice(0, employeesData.length, ...parsed.map(normalizeEmployeeRecord));
+            } catch (error) {
+                console.error('Unable to load employee data:', error);
+                employeesData.forEach(emp => normalizeEmployeeRecord(emp));
+            }
+        }
+
+        function persistEmployeesData() {
+            localStorage.setItem(employeesStorageKey, JSON.stringify(employeesData.map(normalizeEmployeeRecord)));
+        }
+
+        function loadResignationHistory() {
+            try {
+                const saved = localStorage.getItem(resignationHistoryStorageKey);
+                employeesResignationHistory = saved ? JSON.parse(saved) : [];
+                if (!Array.isArray(employeesResignationHistory)) employeesResignationHistory = [];
+            } catch (error) {
+                console.error('Unable to load resignation history:', error);
+                employeesResignationHistory = [];
+            }
+        }
+
+        function persistResignationHistory() {
+            localStorage.setItem(resignationHistoryStorageKey, JSON.stringify(employeesResignationHistory));
+        }
+
+        function formatDateKey(date) {
+            const d = new Date(date);
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function formatThaiDate(dateKey) {
+            const [year, month, day] = dateKey.split('-').map(Number);
+            const date = new Date(year, month - 1, day);
+            const options = { day: 'numeric', month: 'long', year: 'numeric' };
+            return date.toLocaleDateString('th-TH', options);
+        }
+
+        function formatDateInput(dateString) {
+            if (!dateString) return '';
+            const parsed = new Date(dateString + (dateString.includes('T') ? '' : 'T00:00:00'));
+            if (Number.isNaN(parsed.getTime())) {
+                const parts = String(dateString).split(/[\/\-]/).filter(Boolean);
+                if (parts.length === 3) {
+                    const first = Number(parts[0]);
+                    const second = Number(parts[1]);
+                    const third = Number(parts[2]);
+                    const year = third < 100 ? 2500 + third : third;
+                    const month = second;
+                    const day = first;
+                    return `${day}/${month}/${year}`;
+                }
+                return dateString;
+            }
+            return `${parsed.getDate()}/${parsed.getMonth() + 1}/${parsed.getFullYear()}`;
+        }
+
+        function toISODate(dateString) {
+            if (!dateString) return '';
+            const normalized = String(dateString).trim();
+            if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) return normalized;
+
+            const direct = new Date(normalized);
+            if (!Number.isNaN(direct.getTime())) {
+                return formatDateKey(direct);
+            }
+
+            if (/^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}$/.test(normalized)) {
+                const parts = normalized.split(/[\/\-]/).map(part => part.trim());
+                let day = Number(parts[0]);
+                let month = Number(parts[1]);
+                let year = Number(parts[2]);
+                if (year < 100) year += 2500;
+                const date = new Date(year, month - 1, day);
+                if (!Number.isNaN(date.getTime())) {
+                    return formatDateKey(date);
+                }
+            }
+
+            return '';
+        }
+
+        function getCurrentDaySnapshot() {
+            return employeesData.map(emp => ({
+                id: emp.id,
+                code: emp.code,
+                name: emp.name,
+                department: emp.position,
+                position: emp.position,
+                jobTitle: emp.jobTitle || emp.positionTitle || 'พนักงาน',
+                status: emp.status,
+                ot: Boolean(emp.ot),
+                otHours: Number(emp.otHours) || 0,
+                remark: emp.remark || ''
+            }));
+        }
+
+        function loadAttendanceHistory() {
+            try {
+                const saved = localStorage.getItem(attendanceHistoryStorageKey);
+                attendanceHistory = saved ? JSON.parse(saved) : {};
+                if (!attendanceHistory || typeof attendanceHistory !== 'object') attendanceHistory = {};
+                const todayKey = formatDateKey(new Date());
+                const todaySnapshot = attendanceHistory[todayKey];
+                if (Array.isArray(todaySnapshot) && todaySnapshot.length) {
+                    const rowMap = new Map(todaySnapshot.map(item => [item.id, item]));
+                    employeesData.forEach(emp => {
+                        const row = rowMap.get(emp.id);
+                        if (!row) return;
+                        emp.status = row.status || emp.status;
+                        emp.ot = Boolean(row.ot);
+                        emp.otHours = Number(row.otHours) || emp.otHours || 2;
+                        emp.remark = row.remark || '';
+                        emp.jobTitle = row.jobTitle || row.positionTitle || emp.jobTitle || 'พนักงาน';
+                        emp.positionTitle = emp.jobTitle;
+                        emp.position = row.position || row.department || emp.position;
+                    });
+                }
+                if (document.getElementById('history-date-picker')) {
+                    document.getElementById('history-date-picker').value = historySelectedDate;
+                }
+                renderHistoryDates();
+                renderHistoryView(historySelectedDate);
+            } catch (error) {
+                console.error('Unable to load attendance history:', error);
+                attendanceHistory = {};
+                showNotification('โหลดประวัติการเช็คชื่อไม่สำเร็จ');
+            }
+        }
+
+        function saveAttendanceHistory(dateKey = formatDateKey(new Date())) {
+            const snapshot = getCurrentDaySnapshot();
+            attendanceHistory[dateKey] = snapshot;
+            localStorage.setItem(attendanceHistoryStorageKey, JSON.stringify(attendanceHistory));
+            historySelectedDate = dateKey;
+            renderHistoryDates();
+            renderHistoryView(dateKey);
+            renderDashboardTable(
+                document.getElementById('dashboard-search').value,
+                document.getElementById('dashboard-history-month').value
+            );
+        }
+
+        function renderHistoryDates() {
+            const container = document.getElementById('history-date-list');
+            if (!container) return;
+            const keys = Object.keys(attendanceHistory).sort().reverse();
+            container.innerHTML = '';
+
+            if (!keys.length) {
+                const empty = document.createElement('div');
+                empty.className = 'text-sm text-slate-400';
+                empty.textContent = 'ยังไม่มีประวัติการเช็คชื่อ';
+                container.appendChild(empty);
+                return;
+            }
+
+            keys.forEach(dateKey => {
+                const dateGroup = document.createElement('div');
+                dateGroup.className = 'inline-flex items-stretch';
+                const dateButton = document.createElement('button');
+                dateButton.type = 'button';
+                dateButton.textContent = formatThaiDate(dateKey);
+                dateButton.className = `rounded-l-xl px-3 py-2 text-sm font-medium border transition cursor-pointer ${dateKey === historySelectedDate ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`;
+                dateButton.onclick = () => renderHistoryView(dateKey);
+
+                const deleteButton = document.createElement('button');
+                deleteButton.type = 'button';
+                deleteButton.className = `rounded-r-xl border border-l-0 px-3 transition ${dateKey === historySelectedDate ? 'border-indigo-600 bg-indigo-600 text-indigo-100 hover:bg-rose-600 hover:text-white' : 'border-slate-200 bg-white text-slate-400 hover:bg-rose-50 hover:text-rose-600'}`;
+                deleteButton.setAttribute('aria-label', `ลบประวัติวันที่ ${formatThaiDate(dateKey)}`);
+                deleteButton.title = `ลบประวัติวันที่ ${formatThaiDate(dateKey)}`;
+                deleteButton.innerHTML = '<i class="fa-solid fa-trash-can text-xs"></i>';
+                deleteButton.addEventListener('click', () => deleteAttendanceHistory(dateKey));
+                dateGroup.append(dateButton, deleteButton);
+                container.appendChild(dateGroup);
+            });
+        }
+
+        function deleteAttendanceHistory(dateKey) {
+            if (!Object.prototype.hasOwnProperty.call(attendanceHistory, dateKey)) {
+                showNotification('ไม่พบประวัติของวันที่เลือก');
+                return;
+            }
+            if (!confirm(`ต้องการลบประวัติการเช็คชื่อวันที่ ${formatThaiDate(dateKey)} ใช่หรือไม่?`)) return;
+
+            const remainingHistory = { ...attendanceHistory };
+            delete remainingHistory[dateKey];
+            try {
+                localStorage.setItem(attendanceHistoryStorageKey, JSON.stringify(remainingHistory));
+            } catch (error) {
+                console.error('Unable to delete attendance history:', error);
+                showNotification('ลบประวัติไม่สำเร็จ กรุณาตรวจสอบพื้นที่จัดเก็บของเบราว์เซอร์');
+                return;
+            }
+
+            attendanceHistory = remainingHistory;
+            renderHistoryDates();
+            renderHistoryView(historySelectedDate);
+            renderDashboardTable(
+                document.getElementById('dashboard-search').value,
+                document.getElementById('dashboard-history-month').value
+            );
+            showNotification(`ลบประวัติวันที่ ${formatThaiDate(dateKey)} เรียบร้อย`);
+        }
+
+        function getHistoryStatusClasses(status) {
+            const classes = {
+                'มาทำงาน': 'bg-emerald-50 text-emerald-700 border-emerald-100',
+                'สาย': 'bg-amber-50 text-amber-700 border-amber-100',
+                'ขาดงาน': 'bg-rose-50 text-rose-700 border-rose-100',
+                'ลา': 'bg-sky-50 text-sky-700 border-sky-100',
+                'ลาป่วย': 'bg-indigo-50 text-indigo-700 border-indigo-100',
+                'ลากิจ': 'bg-cyan-50 text-cyan-700 border-cyan-100',
+                'ลาพักร้อน': 'bg-orange-50 text-orange-700 border-orange-100',
+                'ครึ่งวัน': 'bg-purple-50 text-purple-700 border-purple-100'
+            };
+            return classes[status] || 'bg-slate-100 text-slate-600 border-slate-200';
+        }
+
+        function getHistoryStatusShort(status, record = null) {
+            if (status === 'มาทำงาน') {
+                if (record && record.ot && Number(record.otHours || 0) >= 2) {
+                    return '10';
+                }
+                return '8';
+            }
+
+            const short = {
+                'สาย': 'สาย',
+                'ขาดงาน': 'ขาดงาน',
+                'ลา': 'ลา',
+                'ลาป่วย': 'ลาป่วย',
+                'ลากิจ': 'ลากิจ',
+                'ลาพักร้อน': 'ลาพักร้อน',
+                'ครึ่งวัน': 'ครึ่งวัน'
+            };
+            return short[status] || 'ไม่ระบุ';
+        }
+
+        function getHistoryStatusLabel(status, record = null) {
+            if (status === 'มาทำงาน') {
+                if (record && record.ot && Number(record.otHours || 0) >= 2) {
+                    return 'มาทำงาน + OT 2 ชม. (10)';
+                }
+                return 'มาทำงาน (8)';
+            }
+
+            const labels = {
+                'สาย': 'สาย',
+                'ขาดงาน': 'ขาดงาน',
+                'ลา': 'ลา',
+                'ลาป่วย': 'ลาป่วย',
+                'ลากิจ': 'ลากิจ',
+                'ลาพักร้อน': 'ลาพักร้อน',
+                'ครึ่งวัน': 'ครึ่งวัน'
+            };
+            return labels[status] || status || 'ยังไม่เช็คชื่อ';
+        }
+
+        function shiftHistoryMonth(offset) {
+            const [year, month, day] = (historySelectedDate || formatDateKey(new Date())).split('-').map(Number);
+            const targetDate = new Date(year, month - 1 + offset, 1);
+            historySelectedDate = formatDateKey(targetDate);
+            renderHistoryView(historySelectedDate);
+        }
+
+        function renderHistoryView(dateKey = historySelectedDate) {
+            const picker = document.getElementById('history-date-picker');
+            const summary = document.getElementById('history-summary');
+            const container = document.getElementById('history-table-container');
+            if (!picker || !summary || !container) return;
+
+            const safeKey = dateKey || formatDateKey(new Date());
+            historySelectedDate = safeKey;
+            picker.value = safeKey;
+
+            const snapshot = attendanceHistory[safeKey] || [];
+            const total = snapshot.length || 0;
+            const present = snapshot.filter(item => item.status === 'มาทำงาน').length;
+            const late = snapshot.filter(item => item.status === 'สาย').length;
+            const absent = snapshot.filter(item => item.status === 'ขาดงาน').length;
+            const leave = snapshot.filter(item => ['ลา', 'ลาป่วย', 'ลากิจ', 'ลาพักร้อน'].includes(item.status)).length;
+            const leaveSick = snapshot.filter(item => item.status === 'ลาป่วย').length;
+            const leavePersonal = snapshot.filter(item => item.status === 'ลากิจ').length;
+            const leaveVacation = snapshot.filter(item => item.status === 'ลาพักร้อน').length;
+            const otYes = snapshot.filter(item => item.status === 'มาทำงาน' && item.ot && Number(item.otHours || 0) >= 2).length;
+            const otNo = snapshot.filter(item => item.status === 'มาทำงาน' && (!item.ot || Number(item.otHours || 0) < 2)).length;
+
+            summary.innerHTML = `
+                <div class="flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-600">
+                    <span class="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-100">มา: ${present}</span>
+                    <span class="px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 border border-amber-100">สาย: ${late}</span>
+                    <span class="px-3 py-1.5 rounded-lg bg-rose-50 text-rose-700 border border-rose-100">ขาด: ${absent}</span>
+                    <span class="px-3 py-1.5 rounded-lg bg-sky-50 text-sky-700 border border-sky-100">ลา: ${leave}</span>
+                    <span class="px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-100">ลาป่วย: ${leaveSick}</span>
+                    <span class="px-3 py-1.5 rounded-lg bg-cyan-50 text-cyan-700 border border-cyan-100">ลากิจ: ${leavePersonal}</span>
+                    <span class="px-3 py-1.5 rounded-lg bg-orange-50 text-orange-700 border border-orange-100">ลาพักร้อน: ${leaveVacation}</span>
+                    <span class="px-3 py-1.5 rounded-lg bg-violet-50 text-violet-700 border border-violet-100">ทำ OT: ${otYes}</span>
+                    <span class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 border border-slate-200">ไม่ทำ OT: ${otNo}</span>
+                    <span class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 border border-slate-200">รวม: ${total} คน</span>
+                </div>
+            `;
+
+            const [year, month] = safeKey.split('-').map(Number);
+            const selectedMonthKey = `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}`;
+            const monthDays = new Date(year, month, 0).getDate();
+            const monthSnapshotKeys = Object.keys(attendanceHistory).filter(key => key.startsWith(selectedMonthKey)).sort();
+
+            if (!monthSnapshotKeys.length) {
+                container.innerHTML = `
+                    <div class="border border-dashed border-slate-200 rounded-xl p-10 text-center text-slate-400 bg-slate-50">
+                        <i class="fa-solid fa-calendar-days text-4xl mb-3 text-indigo-500"></i>
+                        <p class="text-sm font-medium text-slate-700">ยังไม่มีข้อมูลการเช็คชื่อสำหรับเดือน ${new Date(year, month - 1, 1).toLocaleDateString('th-TH', { month: 'long', year: 'numeric' })}</p>
+                        <p class="text-xs text-slate-400 mt-1">หลังจากกดบันทึกข้อมูลการเช็คชื่อในหน้า “เช็คชื่อวันนี้” ระบบจะบันทึกประวัติให้ทันที</p>
+                    </div>
+                `;
+                renderHistoryDates();
+                return;
+            }
+
+            const monthLabel = new Date(year, month - 1, 1).toLocaleDateString('th-TH', { month: 'long', year: 'numeric' });
+            const headerDays = Array.from({ length: monthDays }, (_, index) => {
+                const dayNumber = index + 1;
+                const dayKey = `${selectedMonthKey}-${String(dayNumber).padStart(2, '0')}`;
+                const isSelected = dayKey === safeKey;
+                return `
+                    <th class="min-w-[52px] px-1 py-3 text-center ${isSelected ? 'bg-indigo-50 text-indigo-700' : 'text-slate-500'}">
+                        <span class="inline-flex h-7 w-7 items-center justify-center rounded-lg text-[11px] font-semibold">${dayNumber}</span>
+                    </th>
+                `;
+            }).join('');
+
+            const employeeRows = employeesData.map(emp => {
+                const cells = Array.from({ length: monthDays }, (_, index) => {
+                    const dayNumber = index + 1;
+                    const dayKey = `${selectedMonthKey}-${String(dayNumber).padStart(2, '0')}`;
+                    const record = (attendanceHistory[dayKey] || []).find(item => Number(item.id) === Number(emp.id));
+                    if (!record || !record.status) {
+                        return '<td class="min-w-[52px] px-1 py-2 text-center text-slate-300">—</td>';
+                    }
+
+                    const statusClass = getHistoryStatusClasses(record.status);
+                    const isSelected = dayKey === safeKey;
+                    const displayValue = getHistoryStatusShort(record.status, record);
+                    const displayTitle = getHistoryStatusLabel(record.status, record);
+                    return `
+                        <td class="min-w-[72px] px-1 py-2 text-center ${isSelected ? 'bg-indigo-50/60' : ''}" title="${displayTitle}">
+                            <span class="inline-flex min-h-[52px] w-full items-center justify-center rounded-lg border px-1 py-1 text-[10px] font-bold ${statusClass}">
+                                <span class="flex flex-col items-center leading-tight">
+                                    <span class="text-[11px] font-extrabold">${displayValue}</span>
+                                    <span class="text-[7px] font-medium opacity-80">${record.status === 'มาทำงาน' ? 'มาทำงาน' : record.status}</span>
+                                </span>
+                            </span>
+                        </td>
+                    `;
+                }).join('');
+
+                return `
+                    <tr class="border-t border-slate-100 hover:bg-slate-50/80 transition">
+                        <td class="sticky left-0 z-10 bg-white px-4 py-3 align-middle border-r border-slate-100">
+                            <div class="font-semibold text-slate-900">${emp.name}</div>
+                            <div class="text-[10px] text-slate-400 mt-0.5">${emp.code}</div>
+                        </td>
+                        ${cells}
+                    </tr>
+                `;
+            }).join('');
+
+            container.innerHTML = `
+                <div class="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="shiftHistoryMonth(-1)" class="w-9 h-9 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 flex items-center justify-center cursor-pointer" aria-label="เดือนก่อนหน้า"><i class="fa-solid fa-chevron-left text-xs"></i></button>
+                        <div class="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm font-semibold text-slate-700">${monthLabel}</div>
+                        <button type="button" onclick="shiftHistoryMonth(1)" class="w-9 h-9 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 flex items-center justify-center cursor-pointer" aria-label="เดือนถัดไป"><i class="fa-solid fa-chevron-right text-xs"></i></button>
+                    </div>
+                    <div class="text-xs text-slate-500">ข้อมูล ${monthSnapshotKeys.length} วัน</div>
+                </div>
+                <div class="overflow-x-auto rounded-xl border border-slate-200">
+                    <table class="min-w-[980px] w-full border-collapse text-left">
+                        <thead class="bg-slate-50 text-xs text-slate-500">
+                            <tr>
+                                <th class="sticky left-0 z-20 bg-slate-50 px-4 py-3 font-semibold text-left min-w-[220px]">พนักงาน</th>
+                                ${headerDays}
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm">
+                            ${employeeRows}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            renderHistoryDates();
+        }
+
+        function loadDepartmentData() {
+            try {
+                const savedData = localStorage.getItem(departmentStorageKey);
+                if (!savedData) return;
+
+                const parsedData = JSON.parse(savedData);
+                if (!Array.isArray(parsedData.departments) || !parsedData.employeeDepartments || typeof parsedData.employeeDepartments !== 'object') {
+                    throw new Error('Saved department data has an invalid format.');
+                }
+
+                departmentNames = [...new Set(parsedData.departments)];
+                employeesData.forEach(emp => {
+                    const savedDepartment = parsedData.employeeDepartments[emp.id];
+                    if (typeof savedDepartment === 'string' && departmentNames.includes(savedDepartment)) {
+                        emp.position = savedDepartment;
+                    }
+                });
+            } catch (error) {
+                console.error('Unable to load saved department data:', error);
+                showNotification('โหลดข้อมูลแผนกที่บันทึกไว้ไม่สำเร็จ กรุณาตรวจสอบพื้นที่จัดเก็บของเบราว์เซอร์');
+            }
+        }
+
+        function persistDepartmentData(departments, employeeDepartments) {
+            localStorage.setItem(departmentStorageKey, JSON.stringify({
+                departments,
+                employeeDepartments
+            }));
+        }
+
+        // Switch between application tabs
+        function switchTab(tabId) {
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(item => {
+                if (item.getAttribute('data-tab') === tabId) {
+                    item.className = 'nav-item flex items-center space-x-3 px-4 py-3 rounded-xl bg-indigo-600 text-white font-medium shadow-sm transition-all';
+                } else {
+                    item.className = 'nav-item flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800/70 hover:text-white transition-all';
+                }
+            });
+
+            const contents = document.querySelectorAll('.tab-content');
+            contents.forEach(content => content.classList.add('hidden'));
+            document.getElementById('view-' + tabId).classList.remove('hidden');
+
+            const titles = {
+                'dashboard': { title: 'แดชบอร์ด', subtitle: 'ภาพรวมการเช็คชื่อวันที่ 5 ตุลาคม 2569' },
+                'checkin': { title: 'เช็คชื่อวันนี้', subtitle: 'วันจันทร์ที่ 5 ตุลาคม 2569' },
+                'employees': { title: 'พนักงาน', subtitle: 'จัดการข้อมูลพนักงานในองค์กรทั้งหมด' },
+                'history': { title: 'ประวัติ', subtitle: 'ตรวจสอบรายงานและประวัติการเข้างานย้อนหลัง' }
+            };
+
+            if (titles[tabId]) {
+                document.getElementById('page-title').innerText = titles[tabId].title;
+                document.getElementById('page-subtitle').innerText = titles[tabId].subtitle;
+            }
+
+            if (tabId === 'dashboard') {
+                updateDashboardStats();
+                renderDashboardTable();
+            } else if (tabId === 'checkin') {
+                renderCheckInList();
+            } else if (tabId === 'employees') {
+                renderMaterialsEmployees();
+            } else if (tabId === 'history') {
+                renderHistoryView(historySelectedDate);
+            }
+        }
+
+        // Calculate and update stats & summary pills
+        function getAttendanceCounts(employeeList) {
+            const counts = {
+                present: 0,
+                late: 0,
+                absent: 0,
+                leave: 0,
+                sickLeave: 0,
+                personalLeave: 0,
+                vacationLeave: 0,
+                half: 0,
+                otYes: 0,
+                otNo: 0
+            };
+
+            employeeList.forEach(emp => {
+                if (emp.status === 'มาทำงาน') counts.present++;
+                else if (emp.status === 'สาย') counts.late++;
+                else if (emp.status === 'ขาดงาน') counts.absent++;
+                else if (['ลา', 'ลาป่วย', 'ลากิจ', 'ลาพักร้อน'].includes(emp.status)) counts.leave++;
+                if (emp.status === 'ลาป่วย') counts.sickLeave++;
+                else if (emp.status === 'ลากิจ') counts.personalLeave++;
+                else if (emp.status === 'ลาพักร้อน') counts.vacationLeave++;
+                else if (emp.status === 'ครึ่งวัน') counts.half++;
+
+                if (emp.ot) counts.otYes++;
+                else counts.otNo++;
+            });
+            return counts;
+        }
+
+        function renderDashboardDepartmentTabs() {
+            const container = document.getElementById('dashboard-department-tabs');
+            if (!container) return;
+
+            const departments = [...new Set([
+                ...departmentNames,
+                ...employeesData.map(emp => emp.position || emp.departmentDetail || 'ทั่วไป')
+            ])].filter(department => department !== 'ทั้งหมด');
+            if (dashboardDepartmentFilter !== 'ทั้งหมด' && !departments.includes(dashboardDepartmentFilter)) {
+                dashboardDepartmentFilter = 'ทั้งหมด';
+            }
+
+            container.replaceChildren();
+            ['ทั้งหมด', ...departments].forEach(department => {
+                const count = department === 'ทั้งหมด'
+                    ? employeesData.length
+                    : employeesData.filter(emp => (emp.position || emp.departmentDetail || 'ทั่วไป') === department).length;
+                const button = document.createElement('button');
+                const isSelected = department === dashboardDepartmentFilter;
+                button.type = 'button';
+                button.role = 'tab';
+                button.setAttribute('aria-selected', String(isSelected));
+                button.className = `shrink-0 rounded-xl border px-4 py-2 text-sm font-semibold transition ${isSelected ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`;
+                button.textContent = `${department} (${count})`;
+                button.addEventListener('click', () => {
+                    dashboardDepartmentFilter = department;
+                    updateDashboardStats();
+                    renderDashboardTable(
+                        document.getElementById('dashboard-search').value,
+                        document.getElementById('dashboard-history-month').value
+                    );
+                });
+                container.appendChild(button);
+            });
+        }
+
+        function updateDashboardStats() {
+            renderDashboardDepartmentTabs();
+            const dashboardEmployees = dashboardDepartmentFilter === 'ทั้งหมด'
+                ? employeesData
+                : employeesData.filter(emp => (emp.position || emp.departmentDetail || 'ทั่วไป') === dashboardDepartmentFilter);
+            const dashboardCounts = getAttendanceCounts(dashboardEmployees);
+            const allCounts = getAttendanceCounts(employeesData);
+            const { present, late, absent, leave, sickLeave, personalLeave, vacationLeave, half, otYes, otNo } = dashboardCounts;
+            const total = dashboardEmployees.length;
+            const checkedCount = present + late + half; // effective attendance
+            const rate = total ? Math.round((checkedCount / total) * 100) : 0;
+
+            // Update Dashboard cards
+            document.getElementById('stat-present').innerText = present;
+            document.getElementById('stat-late').innerText = late;
+            document.getElementById('stat-absent').innerText = absent;
+            document.getElementById('stat-leave').innerText = leave;
+            document.getElementById('stat-sick-leave').innerText = sickLeave;
+            document.getElementById('stat-personal-leave').innerText = personalLeave;
+            document.getElementById('stat-vacation-leave').innerText = vacationLeave;
+            document.getElementById('stat-rate').innerText = rate + '%';
+            document.getElementById('stat-rate-bar').style.width = rate + '%';
+            document.getElementById('stat-checked-count').innerText = `เช็คชื่อแล้ว ${checkedCount} คน`;
+            document.getElementById('stat-ot').innerHTML = `${otYes} <span class="text-lg font-normal text-slate-500">คน</span>`;
+            document.getElementById('stat-ot-no').innerHTML = `${otNo} <span class="text-lg font-normal text-slate-500">คน</span>`;
+            document.getElementById('stat-total-inline').innerText = `รวมพนักงาน ${total} คน`;
+            document.getElementById('stat-total-ot').innerText = `พนักงานทั้งหมด ${total} คน`;
+            document.getElementById('stat-total-employees').innerHTML = `${total} <span class="text-lg font-normal text-slate-500">คน</span>`;
+
+            // Update Check-in Pills
+            if(document.getElementById('pill-present')) {
+                document.getElementById('pill-present').innerText = allCounts.present;
+                document.getElementById('pill-late').innerText = allCounts.late;
+                document.getElementById('pill-absent').innerText = allCounts.absent;
+                document.getElementById('pill-leave').innerText = allCounts.leave;
+                document.getElementById('pill-sick-leave').innerText = allCounts.sickLeave;
+                document.getElementById('pill-personal-leave').innerText = allCounts.personalLeave;
+                document.getElementById('pill-vacation-leave').innerText = allCounts.vacationLeave;
+                document.getElementById('pill-half').innerText = allCounts.half;
+                document.getElementById('pill-ot-yes').innerText = allCounts.otYes;
+                document.getElementById('pill-ot-no').innerText = allCounts.otNo;
+            }
+        }
+
+        function openAttendanceDetails(type, status = '', trigger = document.activeElement) {
+            attendanceDetailsTrigger = trigger instanceof HTMLElement
+                ? trigger
+                : null;
+            let title = '';
+            let description = '';
+            let filteredEmployees = [];
+
+            if (type === 'status') {
+                title = `รายละเอียด: ${status}`;
+                filteredEmployees = employeesData.filter(emp => emp.status === status);
+            } else if (type === 'leave') {
+                title = 'รายละเอียดพนักงานลา';
+                filteredEmployees = employeesData.filter(emp => ['ลา', 'ลาป่วย', 'ลากิจ', 'ลาพักร้อน'].includes(emp.status));
+            } else if (type === 'attendanceRate') {
+                title = 'รายละเอียดอัตราการมาทำงานวันนี้';
+                description = 'แสดงพนักงานที่มาทำงาน มาสาย หรือทำงานครึ่งวัน ซึ่งใช้คำนวณอัตราการมาทำงาน';
+                filteredEmployees = employeesData.filter(emp => ['มาทำงาน', 'สาย', 'ครึ่งวัน'].includes(emp.status));
+            } else if (type === 'overtime') {
+                title = 'รายละเอียดพนักงานทำ OT วันนี้';
+                filteredEmployees = employeesData.filter(emp => emp.ot);
+            } else if (type === 'noOvertime') {
+                title = 'รายละเอียดพนักงานไม่ทำ OT วันนี้';
+                filteredEmployees = employeesData.filter(emp => !emp.ot);
+            } else if (type === 'all') {
+                title = 'รายละเอียดพนักงานทั้งหมด';
+                filteredEmployees = employeesData;
+            } else {
+                console.error('Unknown attendance detail type:', type);
+                showNotification('ไม่สามารถเปิดรายละเอียดข้อมูลประเภทนี้ได้');
+                return;
+            }
+
+            if (dashboardDepartmentFilter !== 'ทั้งหมด') {
+                filteredEmployees = filteredEmployees.filter(emp =>
+                    (emp.position || emp.departmentDetail || 'ทั่วไป') === dashboardDepartmentFilter
+                );
+                title += ` · ${dashboardDepartmentFilter}`;
+            }
+
+            const tbody = document.getElementById('attendance-details-body');
+            tbody.replaceChildren();
+            document.getElementById('attendance-details-title').textContent = title;
+            document.getElementById('attendance-details-count').textContent =
+                `${description ? `${description} · ` : ''}พบ ${filteredEmployees.length} คน`;
+
+            filteredEmployees.forEach(emp => {
+                const row = document.createElement('tr');
+                const values = [
+                    emp.code, emp.name, emp.nickname, emp.jobTitle || emp.positionTitle || 'พนักงาน', emp.position,
+                    emp.hireDate, emp.subcontract, emp.commute, emp.pickupPoint, emp.phone,
+                    emp.phoneCard, emp.status, emp.ot ? `${emp.otHours} ชั่วโมง` : 'ไม่ทำ', emp.remark
+                ];
+                values.forEach((value, index) => {
+                    const cell = document.createElement('td');
+                    cell.className = `px-4 py-3 ${index === 1 ? 'font-medium text-slate-900' : 'text-slate-600'}`;
+                    cell.textContent = value || '—';
+                    row.appendChild(cell);
+                });
+                tbody.appendChild(row);
+            });
+
+            if (filteredEmployees.length === 0) {
+                const row = document.createElement('tr');
+                const cell = document.createElement('td');
+                cell.colSpan = 14;
+                cell.className = 'px-4 py-10 text-center text-sm text-slate-400';
+                cell.textContent = 'ไม่มีพนักงานในรายการนี้';
+                row.appendChild(cell);
+                tbody.appendChild(row);
+            }
+
+            document.getElementById('attendance-details-modal').classList.remove('hidden');
+            document.querySelector('#attendance-details-modal button[aria-label="ปิดรายละเอียด"]').focus();
+        }
+
+        function closeAttendanceDetails() {
+            document.getElementById('attendance-details-modal').classList.add('hidden');
+            if (attendanceDetailsTrigger && attendanceDetailsTrigger.isConnected) {
+                attendanceDetailsTrigger.focus();
+            }
+            attendanceDetailsTrigger = null;
+        }
+
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape' && !document.getElementById('attendance-details-modal').classList.contains('hidden')) {
+                closeAttendanceDetails();
+            }
+        });
+
+        function activateAttendanceCard(event, type) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                openAttendanceDetails(type);
+            }
+        }
+
+        // Render Dashboard Table
+        function renderDashboardTable(filter = '', monthKey = '') {
+            const tbody = document.getElementById('dashboard-table-body');
+            tbody.innerHTML = '';
+
+            const monthPicker = document.getElementById('dashboard-history-month');
+            const selectedMonth = monthKey || monthPicker.value || formatDateKey(new Date()).slice(0, 7);
+            monthPicker.value = selectedMonth;
+            const [year, month] = selectedMonth.split('-').map(Number);
+            const monthDays = new Date(year, month, 0).getDate();
+            const todayKey = formatDateKey(new Date());
+            const currentMonthLabel = new Date(year, month - 1, 1).toLocaleDateString('th-TH', {
+                month: 'long',
+                year: 'numeric'
+            });
+            document.getElementById('dashboard-attendance-month-label').textContent =
+                `วันที่ในเดือน${currentMonthLabel}: เข้างานสีเขียว · ขาดงานสีแดง · ลาสีฟ้า · ยังไม่บันทึกสีเทา`;
+
+            const query = filter.toLowerCase();
+            const filtered = employeesData.filter(emp =>
+                (dashboardDepartmentFilter === 'ทั้งหมด' || (emp.position || emp.departmentDetail || 'ทั่วไป') === dashboardDepartmentFilter) &&
+                (
+                    emp.name.toLowerCase().includes(query) ||
+                    emp.code.toLowerCase().includes(query) ||
+                    emp.nickname.toLowerCase().includes(query)
+                )
+            );
+            const departmentOrder = [...new Set([
+                ...departmentNames,
+                ...employeesData.map(emp => emp.position || emp.departmentDetail || 'ทั่วไป')
+            ])];
+            const departmentPositions = new Map(departmentOrder.map((department, index) => [department, index]));
+            filtered.sort((first, second) =>
+                departmentPositions.get(first.position || first.departmentDetail || 'ทั่วไป') -
+                departmentPositions.get(second.position || second.departmentDetail || 'ทั่วไป')
+            );
+
+            let previousDepartment = '';
+            filtered.forEach(emp => {
+                const department = emp.position || emp.departmentDetail || 'ทั่วไป';
+                if (department !== previousDepartment) {
+                    const departmentRow = document.createElement('tr');
+                    const departmentCell = document.createElement('th');
+                    const departmentEmployeeCount = filtered.filter(item =>
+                        (item.position || item.departmentDetail || 'ทั่วไป') === department
+                    ).length;
+                    departmentCell.colSpan = 4;
+                    departmentCell.className = 'bg-slate-50 px-4 py-2 text-left text-xs font-bold text-slate-600';
+                    departmentCell.textContent = `${department} · ${departmentEmployeeCount} คน`;
+                    departmentRow.appendChild(departmentCell);
+                    tbody.appendChild(departmentRow);
+                    previousDepartment = department;
+                }
+
+                let badgeClass = 'bg-slate-100 text-slate-600 border-slate-200';
+                if (emp.status === 'มาทำงาน') badgeClass = 'bg-emerald-50 text-emerald-600 border-emerald-100';
+                if (emp.status === 'ขาดงาน') badgeClass = 'bg-rose-50 text-rose-600 border-rose-100';
+                else if (['ลา', 'ลาป่วย', 'ลากิจ'].includes(emp.status)) badgeClass = 'bg-sky-50 text-sky-600 border-sky-100';
+                else if (emp.status === 'ลาพักร้อน') badgeClass = 'bg-orange-50 text-orange-600 border-orange-100';
+                else if (emp.status === 'สาย') badgeClass = 'bg-amber-50 text-amber-600 border-amber-100';
+                else if (emp.status === 'ครึ่งวัน') badgeClass = 'bg-purple-50 text-purple-600 border-purple-100';
+
+                const dailyMarks = Array.from({ length: monthDays }, (_, index) => {
+                    const dayKey = `${selectedMonth}-${String(index + 1).padStart(2, '0')}`;
+                    const record = (attendanceHistory[dayKey] || []).find(item => Number(item.id) === Number(emp.id));
+                    const status = record ? record.status : dayKey === todayKey ? emp.status : '';
+                    const cameToWork = ['มาทำงาน', 'สาย', 'ครึ่งวัน'].includes(status);
+                    const absent = status === 'ขาดงาน';
+                    const leave = ['ลา', 'ลาป่วย', 'ลากิจ', 'ลาพักร้อน'].includes(status);
+                    const markClass = cameToWork
+                        ? 'border-emerald-200 bg-emerald-100 text-emerald-700'
+                        : absent
+                            ? 'border-rose-200 bg-rose-100 text-rose-700'
+                            : leave
+                                ? 'border-sky-200 bg-sky-50 text-sky-600'
+                                : 'border-slate-200 bg-slate-50 text-slate-300';
+                    const statusLabel = status && status !== 'ยังไม่เช็คชื่อ' ? status : 'ยังไม่มีข้อมูล';
+
+                    return `<span class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border text-[10px] font-semibold ${markClass}" title="${formatThaiDate(dayKey)} · ${statusLabel}" aria-label="วันที่ ${index + 1}: ${statusLabel}">${index + 1}</span>`;
+                }).join('');
+
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50/80 transition';
+                tr.innerHTML = `
+                    <td class="py-4 px-6 w-16">
+                        <div class="w-10 h-10 rounded-full bg-slate-100 text-slate-700 font-bold flex items-center justify-center text-sm shadow-xs">
+                            ${emp.name.charAt(0)}
+                        </div>
+                    </td>
+                    <td class="py-4 px-4">
+                        <div class="font-semibold text-slate-900">${emp.name}</div>
+                        <div class="text-xs text-slate-400">${emp.code}</div>
+                    </td>
+                    <td class="min-w-[420px] px-4 py-3">
+                        <div class="flex flex-wrap gap-1">${dailyMarks}</div>
+                    </td>
+                    <td class="py-4 px-4 text-right">
+                        <div class="flex items-center justify-end space-x-2">
+                            ${emp.ot ? `<span class="inline-flex items-center space-x-1 px-2.5 py-1 rounded-md text-xs font-medium bg-indigo-50 text-indigo-600 border border-indigo-100"><i class="fa-solid fa-bolt text-[10px]"></i><span>OT ${emp.otHours}ชม.</span></span>` : ''}
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${badgeClass}">
+                                ${emp.status}
+                            </span>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            if (filtered.length === 0) {
+                const row = document.createElement('tr');
+                const cell = document.createElement('td');
+                cell.colSpan = 4;
+                cell.className = 'px-6 py-8 text-center text-sm text-slate-400';
+                cell.textContent = employeesData.length ? 'ไม่พบพนักงานที่ค้นหา' : 'ยังไม่มีรายชื่อพนักงาน';
+                row.appendChild(cell);
+                tbody.appendChild(row);
+            }
+        }
+
+        function renderMaterialsEmployees() {
+            const container = document.getElementById('department-list');
+            const tabsContainer = document.getElementById('department-tabs');
+            const historyContainer = document.getElementById('resignation-history');
+            const searchInput = document.getElementById('employee-search');
+            const searchTerm = (searchInput ? searchInput.value : '').trim().toLowerCase();
+
+            const allActiveEmployees = employeesData.filter(emp => !emp.isResigned);
+            const availableDepartments = [...new Set([
+                ...departmentNames,
+                ...allActiveEmployees.map(emp => emp.position || emp.departmentDetail || 'ทั่วไป')
+            ])];
+            if (selectedDepartmentTab !== 'ทั้งหมด' && !availableDepartments.includes(selectedDepartmentTab)) {
+                selectedDepartmentTab = 'ทั้งหมด';
+            }
+
+            const activeEmployees = employeesData.filter(emp => !emp.isResigned && (
+                !searchTerm ||
+                emp.name.toLowerCase().includes(searchTerm) ||
+                emp.code.toLowerCase().includes(searchTerm) ||
+                (emp.position || '').toLowerCase().includes(searchTerm) ||
+                (emp.jobTitle || emp.positionTitle || '').toLowerCase().includes(searchTerm)
+            ));
+
+            const resignedEmployees = employeesData.filter(emp => emp.isResigned && (
+                !searchTerm ||
+                emp.name.toLowerCase().includes(searchTerm) ||
+                emp.code.toLowerCase().includes(searchTerm)
+            ));
+
+            container.innerHTML = '';
+            tabsContainer.replaceChildren();
+            historyContainer.innerHTML = '';
+            document.getElementById('employees-total-heading').innerText =
+                selectedDepartmentTab === 'ทั้งหมด'
+                    ? `รายชื่อพนักงานทั้งหมด (${allActiveEmployees.length} คน)`
+                    : `แผนก${selectedDepartmentTab} (${allActiveEmployees.filter(emp => (emp.position || emp.departmentDetail || 'ทั่วไป') === selectedDepartmentTab).length} คน)`;
+
+            ['ทั้งหมด', ...availableDepartments.filter(department => department !== 'ทั้งหมด')].forEach(department => {
+                const tabGroup = document.createElement('div');
+                tabGroup.className = 'inline-flex shrink-0 items-stretch';
+                const tab = document.createElement('button');
+                const isSelected = department === selectedDepartmentTab;
+                const departmentCount = department === 'ทั้งหมด'
+                    ? allActiveEmployees.length
+                    : allActiveEmployees.filter(emp => (emp.position || emp.departmentDetail || 'ทั่วไป') === department).length;
+                tab.type = 'button';
+                tab.role = 'tab';
+                tab.setAttribute('aria-selected', String(isSelected));
+                tab.className = `px-4 py-2.5 rounded-l-xl border text-sm font-semibold transition ${isSelected ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'} ${department === 'ทั้งหมด' ? 'rounded-r-xl' : ''}`;
+                tab.textContent = `${department} (${departmentCount})`;
+                tab.addEventListener('click', () => {
+                    selectedDepartmentTab = department;
+                    renderMaterialsEmployees();
+                });
+                tabGroup.appendChild(tab);
+                if (department !== 'ทั้งหมด') {
+                    const deleteButton = document.createElement('button');
+                    deleteButton.type = 'button';
+                    deleteButton.className = `rounded-r-xl border border-l-0 px-3 transition ${isSelected ? 'border-indigo-600 bg-indigo-600 text-indigo-100 hover:bg-rose-600 hover:text-white' : 'border-slate-200 bg-white text-slate-400 hover:bg-rose-50 hover:text-rose-600'}`;
+                    deleteButton.setAttribute('aria-label', `ลบแผนก${department}`);
+                    deleteButton.title = `ลบแผนก${department}`;
+                    deleteButton.innerHTML = '<i class="fa-solid fa-trash-can text-xs"></i>';
+                    deleteButton.addEventListener('click', () => deleteDepartment(department));
+                    tabGroup.appendChild(deleteButton);
+                }
+                tabsContainer.appendChild(tabGroup);
+            });
+
+            const displayedDepartments = selectedDepartmentTab === 'ทั้งหมด'
+                ? availableDepartments
+                : [selectedDepartmentTab];
+            if (activeEmployees.length === 0 && searchTerm) {
+                container.innerHTML = `
+                    <div class="bg-white rounded-2xl border border-dashed border-slate-200 p-10 text-center text-sm text-slate-400">
+                        ไม่พบพนักงานที่ตรงกับคำค้นหา
+                    </div>
+                `;
+            } else {
+                displayedDepartments.forEach(department => {
+                    const employees = activeEmployees.filter(emp => (emp.position || emp.departmentDetail || 'ทั่วไป') === department);
+                    const section = document.createElement('section');
+                    section.className = 'bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden';
+                    const header = document.createElement('div');
+                    header.className = 'px-5 py-4 border-b border-slate-200 flex items-center justify-between';
+                    const title = document.createElement('h4');
+                    title.className = 'font-bold text-slate-900';
+                    title.textContent = department;
+                    const count = document.createElement('span');
+                    count.className = 'text-xs font-medium text-slate-500';
+                    count.textContent = `${employees.length} คน`;
+                    const addEmployeeButton = document.createElement('button');
+                    addEmployeeButton.type = 'button';
+                    addEmployeeButton.className = 'ml-auto mr-3 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-indigo-700';
+                    addEmployeeButton.innerHTML = '<i class="fa-solid fa-user-plus"></i><span>เพิ่มพนักงาน</span>';
+                    addEmployeeButton.addEventListener('click', () => openEmployeeModal('create', null, department));
+                    header.append(title, count, addEmployeeButton);
+                    const grid = document.createElement('div');
+                    grid.className = 'divide-y divide-slate-200';
+
+                    if (employees.length === 0) {
+                        const emptyState = document.createElement('div');
+                        emptyState.className = 'm-4 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center';
+                        emptyState.innerHTML = `
+                            <p class="text-sm font-medium text-slate-700">ยังไม่มีพนักงานในแผนกนี้</p>
+                            <p class="mt-1 text-xs text-slate-400">${searchTerm ? 'ไม่พบพนักงานที่ตรงกับคำค้นหา' : 'เพิ่มพนักงานเข้ามาในแผนกนี้ได้เลย'}</p>
+                        `;
+                        grid.appendChild(emptyState);
+                    }
+
+                    employees.forEach(emp => {
+                        const employeeRow = document.createElement('article');
+                        const initials = (emp.name || 'พ').split(' ').map(part => part.charAt(0)).slice(0, 2).join('').toUpperCase() || 'P';
+                        const role = getEmployeeRoleStyle(emp.jobTitle || emp.positionTitle || '');
+                        const roleBadgeClass = role.badge ? role.badgeClass : 'bg-violet-50 text-violet-700 border-violet-100';
+                        employeeRow.className = `flex flex-col gap-4 p-4 transition md:flex-row md:items-center ${role.cardClass}`;
+                        employeeRow.innerHTML = `
+                            <div class="flex min-w-0 items-center gap-3 md:w-64 md:shrink-0">
+                                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${role.badge ? role.badgeClass : 'bg-teal-100 text-teal-700'} font-bold text-sm">${initials}</div>
+                                <div class="min-w-0">
+                                    <div class="truncate font-bold text-slate-900">${emp.name || '—'}</div>
+                                    <div class="text-xs text-slate-500">${emp.code || '—'}</div>
+                                    <span class="mt-1 inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold ${roleBadgeClass}">${emp.jobTitle || emp.positionTitle || 'พนักงาน'}</span>
+                                </div>
+                            </div>
+                            <div class="grid flex-1 grid-cols-2 gap-x-5 gap-y-2 text-xs text-slate-600 sm:grid-cols-3 xl:grid-cols-5">
+                                <div><span class="block text-slate-400">Subcontract</span><span class="font-medium">${emp.subcontract || '—'}</span></div>
+                                <div><span class="block text-slate-400">วันที่เริ่มงาน</span><span class="font-medium">${emp.hireDate || '—'}</span></div>
+                                <div><span class="block text-slate-400">สายรถ / จุดขึ้นรถ</span><span class="font-medium">${emp.commute || '—'} / ${emp.pickupPoint || '—'}</span></div>
+                                <div><span class="block text-slate-400">เบอร์โทร</span><span class="font-medium">${emp.phone || '—'}</span></div>
+                                <div><span class="block text-slate-400">ใบเบอร์</span><span class="font-medium">${emp.phoneCard || '—'}</span></div>
+                            </div>
+                            <div class="flex shrink-0 items-center justify-between gap-2 border-t border-slate-200/70 pt-3 md:flex-col md:items-end md:border-0 md:pt-0">
+                                <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold ${emp.status === 'มาทำงาน' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : emp.status === 'สาย' ? 'bg-amber-50 text-amber-700 border-amber-100' : emp.status === 'ขาดงาน' ? 'bg-rose-50 text-rose-700 border-rose-100' : 'bg-slate-100 text-slate-600 border-slate-200'}">
+                                    ${emp.status || 'ยังไม่เช็คชื่อ'}
+                                </span>
+                                <div class="flex items-center gap-2">
+                                    <button type="button" onclick="editEmployee(${emp.id})" class="h-8 w-8 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100" title="แก้ไขข้อมูล" aria-label="แก้ไขข้อมูล ${emp.name}"><i class="fa-solid fa-pen text-xs"></i></button>
+                                    <button type="button" onclick="deleteEmployee(${emp.id})" class="h-8 w-8 rounded-lg border border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100" title="ลบพนักงาน" aria-label="ลบพนักงาน ${emp.name}"><i class="fa-solid fa-trash text-xs"></i></button>
+                                    <button type="button" onclick="resignEmployee(${emp.id})" class="rounded-lg border border-red-100 bg-red-50 px-3 py-1.5 text-[10px] font-semibold text-red-600 transition hover:bg-red-100">ลาออก</button>
+                                </div>
+                            </div>
+                        `;
+                        grid.appendChild(employeeRow);
+                    });
+
+                    section.append(header, grid);
+                    container.appendChild(section);
+                });
+            }
+
+            if (resignedEmployees.length > 0) {
+                const historyBox = document.createElement('div');
+                historyBox.className = 'bg-white rounded-2xl border border-slate-200 shadow-xs p-4';
+                historyBox.innerHTML = `
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="text-base font-bold text-slate-900">ประวัติการลาออก</h4>
+                        <span class="text-xs text-slate-500">${resignedEmployees.length} ราย</span>
+                    </div>
+                    <div class="space-y-2">
+                        ${resignedEmployees.map(emp => `
+                            <div class="flex items-center justify-between rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-sm">
+                                <div>
+                                    <div class="font-medium text-slate-800">${emp.name}</div>
+                                    <div class="text-[11px] text-slate-500">${emp.code} · ${emp.resignDate || '—'} · ${emp.resignReason || 'ลาออก'}</div>
+                                </div>
+                                <button type="button" onclick="deleteEmployee(${emp.id}, true)" class="text-xs font-medium text-red-600 hover:text-red-700">ลบประวัติ</button>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                historyContainer.appendChild(historyBox);
+            }
+        }
+
+        function openDepartmentModal() {
+            selectedDepartmentEmployeeIds.clear();
+            document.getElementById('new-department-name').value = '';
+            document.getElementById('department-employee-search').value = '';
+            renderDepartmentEmployeeChoices();
+            document.getElementById('department-modal').classList.remove('hidden');
+            document.getElementById('new-department-name').focus();
+        }
+
+        function closeDepartmentModal() {
+            document.getElementById('department-modal').classList.add('hidden');
+        }
+
+        function openEmployeeModal(mode = 'create', employeeId = null, presetDepartment = '') {
+            const select = document.getElementById('new-employee-department');
+            select.innerHTML = '<option value="">-- เลือกแผนก --</option>' + departmentNames.map(name => `<option value="${name}">${name}</option>`).join('');
+
+            document.getElementById('employee-form-mode').value = mode;
+            document.getElementById('employee-edit-id').value = employeeId || '';
+
+            const isEdit = mode === 'edit';
+            const title = document.getElementById('employee-modal-title');
+            const subtitle = document.getElementById('employee-modal-subtitle');
+            const submitButton = document.getElementById('employee-form-submit');
+            title.textContent = isEdit ? 'แก้ไขข้อมูลพนักงาน' : 'เพิ่มพนักงาน';
+            subtitle.textContent = isEdit ? 'ปรับปรุงข้อมูลทั้งหมดของพนักงานที่เลือก' : 'กรอกข้อมูลและเลือกแผนกที่พนักงานจะเข้าทำงาน';
+            submitButton.textContent = isEdit ? 'บันทึกการแก้ไข' : 'เพิ่มพนักงาน';
+
+            const defaultEmployee = {
+                name: '',
+                code: '',
+                nickname: '',
+                hireDate: '',
+                subcontract: '',
+                commute: '',
+                pickupPoint: '',
+                departmentDetail: '',
+                phone: '',
+                phoneCard: ''
+            };
+            const employee = isEdit ? employeesData.find(item => Number(item.id) === Number(employeeId)) || defaultEmployee : defaultEmployee;
+
+            document.getElementById('new-employee-name').value = employee.name || '';
+            document.getElementById('new-employee-code').value = employee.code || '';
+            document.getElementById('new-employee-nickname').value = employee.nickname || '';
+            document.getElementById('new-employee-position').value = employee.jobTitle || employee.positionTitle || '';
+            document.getElementById('new-employee-hire-date').value = employee.hireDate ? toISODate(employee.hireDate) : '';
+            document.getElementById('new-employee-subcontract').value = employee.subcontract || '';
+            document.getElementById('new-employee-commute').value = employee.commute || '';
+            document.getElementById('new-employee-pickup').value = employee.pickupPoint || '';
+            document.getElementById('new-employee-phone').value = employee.phone || '';
+            document.getElementById('new-employee-phone-card').value = employee.phoneCard || '';
+            const departmentValue = (employee.position || employee.departmentDetail || '');
+            const selectedDepartment = isEdit ? departmentValue : (presetDepartment || departmentValue);
+            select.value = departmentNames.includes(selectedDepartment) ? selectedDepartment : '';
+
+            document.getElementById('employee-modal').classList.remove('hidden');
+            document.getElementById('new-employee-name').focus();
+        }
+
+        function closeEmployeeModal() {
+            document.getElementById('employee-modal').classList.add('hidden');
+            document.getElementById('employee-form-mode').value = 'create';
+            document.getElementById('employee-edit-id').value = '';
+            document.getElementById('new-employee-name').value = '';
+            document.getElementById('new-employee-code').value = '';
+            document.getElementById('new-employee-nickname').value = '';
+            document.getElementById('new-employee-position').value = '';
+            document.getElementById('new-employee-hire-date').value = '';
+            document.getElementById('new-employee-subcontract').value = '';
+            document.getElementById('new-employee-commute').value = '';
+            document.getElementById('new-employee-pickup').value = '';
+            document.getElementById('new-employee-phone').value = '';
+            document.getElementById('new-employee-phone-card').value = '';
+            document.getElementById('new-employee-department').value = '';
+        }
+
+        function createEmployee(event) {
+            event.preventDefault();
+            const mode = document.getElementById('employee-form-mode').value;
+            const editingId = document.getElementById('employee-edit-id').value;
+            const name = document.getElementById('new-employee-name').value.trim();
+            const code = document.getElementById('new-employee-code').value.trim();
+            const nickname = document.getElementById('new-employee-nickname').value.trim();
+            const jobTitle = document.getElementById('new-employee-position').value.trim();
+            const hireDateValue = document.getElementById('new-employee-hire-date').value;
+            const subcontract = document.getElementById('new-employee-subcontract').value.trim();
+            const commute = document.getElementById('new-employee-commute').value.trim();
+            const pickupPoint = document.getElementById('new-employee-pickup').value.trim();
+            const phone = document.getElementById('new-employee-phone').value.trim();
+            const phoneCard = document.getElementById('new-employee-phone-card').value.trim();
+            const department = document.getElementById('new-employee-department').value;
+
+            if (!name || !code || !department) {
+                showNotification('กรุณากรอกชื่อ รหัสพนักงาน และเลือกแผนกให้ครบถ้วน');
+                return;
+            }
+
+            if (mode === 'edit' && editingId) {
+                const emp = employeesData.find(item => Number(item.id) === Number(editingId));
+                if (!emp) return;
+                const duplicate = employeesData.some(item => Number(item.id) !== Number(editingId) && (
+                    item.code.toLowerCase() === code.toLowerCase() || item.name.toLowerCase() === name.toLowerCase()
+                ));
+                if (duplicate) {
+                    showNotification('มีพนักงานรายนี้อยู่แล้ว กรุณาตรวจสอบชื่อหรือรหัสพนักงาน');
+                    return;
+                }
+
+                emp.name = name;
+                emp.code = code;
+                emp.nickname = nickname || '-';
+                emp.jobTitle = jobTitle || emp.jobTitle || 'พนักงาน';
+                emp.positionTitle = emp.jobTitle;
+                emp.hireDate = hireDateValue ? formatDateInput(hireDateValue) : emp.hireDate || '';
+                emp.subcontract = subcontract || '';
+                emp.commute = commute || '';
+                emp.pickupPoint = pickupPoint || '';
+                emp.phone = phone || '';
+                emp.phoneCard = phoneCard || 'ไม่มีใบเบอร์';
+                emp.position = department;
+                emp.departmentDetail = department;
+                if (!departmentNames.includes(department)) {
+                    departmentNames.push(department);
+                }
+                const employeeDepartments = Object.fromEntries(
+                    employeesData.map(item => [item.id, item.position || item.departmentDetail || 'ทั่วไป'])
+                );
+                persistDepartmentData(departmentNames, employeeDepartments);
+                persistEmployeesData();
+                renderMaterialsEmployees();
+                renderCheckInList();
+                updateDashboardStats();
+                closeEmployeeModal();
+                showNotification(`แก้ไขข้อมูลพนักงาน ${name} เรียบร้อย`);
+                return;
+            }
+
+            const duplicate = employeesData.some(emp => emp.code.toLowerCase() === code.toLowerCase() || emp.name.toLowerCase() === name.toLowerCase());
+            if (duplicate) {
+                showNotification('มีพนักงานรายนี้อยู่แล้ว กรุณาตรวจสอบชื่อหรือรหัสพนักงาน');
+                return;
+            }
+
+            const newEmployee = {
+                id: Date.now(),
+                code,
+                name,
+                hireDate: hireDateValue ? formatDateInput(hireDateValue) : '',
+                nickname: nickname || '-',
+                jobTitle: jobTitle || 'พนักงาน',
+                positionTitle: jobTitle || 'พนักงาน',
+                subcontract: subcontract || '',
+                commute: commute || '',
+                pickupPoint: pickupPoint || '',
+                departmentDetail: department,
+                phone: phone || '',
+                phoneCard: phoneCard || 'ไม่มีใบเบอร์',
+                position: department,
+                status: 'ยังไม่เช็คชื่อ',
+                ot: false,
+                otHours: 2,
+                remark: '',
+                isResigned: false,
+                resignDate: '',
+                resignReason: ''
+            };
+
+            employeesData.push(newEmployee);
+            persistEmployeesData();
+            renderMaterialsEmployees();
+            renderCheckInList();
+            updateDashboardStats();
+            closeEmployeeModal();
+            showNotification(`เพิ่มพนักงาน ${name} ในแผนก ${department} เรียบร้อย`);
+        }
+
+        function editEmployee(id) {
+            const emp = employeesData.find(item => Number(item.id) === Number(id));
+            if (!emp) return;
+            openEmployeeModal('edit', emp.id);
+        }
+
+        function deleteEmployee(id, skipHistoryOnly = false) {
+            const emp = employeesData.find(item => Number(item.id) === Number(id));
+            if (!emp) return;
+
+            if (!skipHistoryOnly) {
+                const confirmed = confirm(`ต้องการลบพนักงาน ${emp.name} ออกจากระบบใช่หรือไม่?`);
+                if (!confirmed) return;
+                employeesData = employeesData.filter(item => Number(item.id) !== Number(id));
+                persistEmployeesData();
+                renderMaterialsEmployees();
+                renderCheckInList();
+                updateDashboardStats();
+                showNotification(`ลบพนักงาน ${emp.name} เรียบร้อย`);
+                return;
+            }
+
+            employeesData = employeesData.filter(item => Number(item.id) !== Number(id));
+            persistEmployeesData();
+            renderMaterialsEmployees();
+            renderCheckInList();
+            updateDashboardStats();
+            showNotification('ลบประวัติการลาออกเรียบร้อย');
+        }
+
+        function resignEmployee(id) {
+            const emp = employeesData.find(item => Number(item.id) === Number(id));
+            if (!emp) return;
+            const reason = prompt('สาเหตุการลาออก', 'ลาออก');
+            if (reason === null) return;
+            const resignDate = prompt('วันที่ลาออก', formatDateKey(new Date()));
+            if (resignDate === null) return;
+
+            emp.isResigned = true;
+            emp.resignDate = resignDate;
+            emp.resignReason = reason.trim() || 'ลาออก';
+            employeesResignationHistory.push({
+                id: emp.id,
+                code: emp.code,
+                name: emp.name,
+                department: emp.position,
+                resignDate,
+                reason: emp.resignReason
+            });
+            persistResignationHistory();
+            persistEmployeesData();
+            renderMaterialsEmployees();
+            renderCheckInList();
+            updateDashboardStats();
+            showNotification(`บันทึกการลาออกของ ${emp.name} เรียบร้อย`);
+        }
+
+        function renderDepartmentEmployeeChoices() {
+            const query = document.getElementById('department-employee-search').value.trim().toLowerCase();
+            const choices = document.getElementById('department-employee-choices');
+            choices.innerHTML = '';
+            const filteredEmployees = employeesData.filter(emp =>
+                emp.name.toLowerCase().includes(query) ||
+                emp.code.toLowerCase().includes(query) ||
+                emp.position.toLowerCase().includes(query)
+            );
+
+            filteredEmployees.forEach(emp => {
+                const label = document.createElement('label');
+                label.className = 'flex items-center gap-3 px-3 py-2.5 hover:bg-slate-50 cursor-pointer';
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = selectedDepartmentEmployeeIds.has(emp.id);
+                checkbox.className = 'rounded border-slate-300 text-indigo-600 focus:ring-indigo-500';
+                checkbox.addEventListener('change', () => {
+                    if (checkbox.checked) selectedDepartmentEmployeeIds.add(emp.id);
+                    else selectedDepartmentEmployeeIds.delete(emp.id);
+                    updateDepartmentSelectionCount();
+                });
+                const description = document.createElement('span');
+                description.className = 'min-w-0';
+                const name = document.createElement('span');
+                name.className = 'block text-sm font-medium text-slate-800 truncate';
+                name.textContent = emp.name;
+                const details = document.createElement('span');
+                details.className = 'block text-xs text-slate-400';
+                details.textContent = `${emp.code} · ${emp.position}`;
+                description.append(name, details);
+                label.append(checkbox, description);
+                choices.appendChild(label);
+            });
+
+            if (filteredEmployees.length === 0) {
+                const emptyMessage = document.createElement('p');
+                emptyMessage.className = 'px-3 py-4 text-sm text-slate-400 text-center';
+                emptyMessage.textContent = employeesData.length ? 'ไม่พบพนักงานที่ค้นหา' : 'ยังไม่มีรายชื่อพนักงานให้เลือก';
+                choices.appendChild(emptyMessage);
+            }
+            updateDepartmentSelectionCount();
+        }
+
+        function updateDepartmentSelectionCount() {
+            const count = selectedDepartmentEmployeeIds.size;
+            document.getElementById('department-selection-count').innerText =
+                count ? `เลือกแล้ว ${count} คน` : 'สามารถเลือกพนักงานเพื่อย้ายเข้ากลุ่มได้ตามต้องการ';
+        }
+
+        function createDepartment(event) {
+            event.preventDefault();
+            const departmentName = document.getElementById('new-department-name').value.trim();
+            if (!departmentName) {
+                showNotification('กรุณาระบุชื่อแผนก');
+                return;
+            }
+            if (departmentNames.some(name => name.toLowerCase() === departmentName.toLowerCase())) {
+                showNotification('มีชื่อแผนกนี้อยู่แล้ว กรุณาใช้ชื่ออื่น');
+                return;
+            }
+
+            const nextDepartments = [...departmentNames, departmentName];
+            const nextAssignments = Object.fromEntries(
+                employeesData.map(emp => [
+                    emp.id,
+                    selectedDepartmentEmployeeIds.has(emp.id) ? departmentName : emp.position
+                ])
+            );
+            try {
+                persistDepartmentData(nextDepartments, nextAssignments);
+            } catch (error) {
+                console.error('Unable to save department data:', error);
+                showNotification('บันทึกแผนกไม่สำเร็จ กรุณาตรวจสอบพื้นที่จัดเก็บของเบราว์เซอร์');
+                return;
+            }
+
+            departmentNames = nextDepartments;
+            employeesData.forEach(emp => {
+                if (selectedDepartmentEmployeeIds.has(emp.id)) emp.position = departmentName;
+            });
+            const movedEmployeeCount = selectedDepartmentEmployeeIds.size;
+            selectedDepartmentTab = departmentName;
+            closeDepartmentModal();
+            renderMaterialsEmployees();
+            renderCheckInList();
+            updateDashboardStats();
+            selectedDepartmentEmployeeIds.clear();
+            showNotification(`เพิ่มแผนก ${departmentName} เรียบร้อย${movedEmployeeCount ? ` และย้ายพนักงาน ${movedEmployeeCount} คนเข้ากลุ่ม` : ''}`);
+        }
+
+        function deleteDepartment(departmentName) {
+            const assignedEmployees = employeesData.filter(emp =>
+                (emp.position || emp.departmentDetail || 'ทั่วไป') === departmentName
+            );
+            if (assignedEmployees.length > 0) {
+                showNotification(`ยังลบแผนกไม่ได้ กรุณาย้ายพนักงาน ${assignedEmployees.length} คนออกจากแผนกนี้ก่อน`);
+                return;
+            }
+
+            if (!confirm(`ต้องการลบแผนก "${departmentName}" ใช่หรือไม่?`)) return;
+
+            const nextDepartments = departmentNames.filter(name => name !== departmentName);
+            const employeeDepartments = Object.fromEntries(
+                employeesData.map(emp => [emp.id, emp.position || emp.departmentDetail || 'ทั่วไป'])
+            );
+            try {
+                persistDepartmentData(nextDepartments, employeeDepartments);
+            } catch (error) {
+                console.error('Unable to delete department:', error);
+                showNotification('ลบแผนกไม่สำเร็จ กรุณาตรวจสอบพื้นที่จัดเก็บของเบราว์เซอร์');
+                return;
+            }
+
+            departmentNames = nextDepartments;
+            if (selectedDepartmentTab === departmentName) selectedDepartmentTab = 'ทั้งหมด';
+            renderMaterialsEmployees();
+            updateDashboardStats();
+            renderDashboardTable(
+                document.getElementById('dashboard-search').value,
+                document.getElementById('dashboard-history-month').value
+            );
+            showNotification(`ลบแผนก ${departmentName} เรียบร้อย`);
+        }
+
+        function filterDashboardTable() {
+            const query = document.getElementById('dashboard-search').value;
+            renderDashboardTable(query, document.getElementById('dashboard-history-month').value);
+        }
+
+        // Render Check-in Interactive List
+        function getEmployeeRoleStyle(jobTitle = '') {
+            const normalized = String(jobTitle || '').trim();
+            if (normalized.includes('หัวหน้า')) {
+                return {
+                    badge: 'หัวหน้า',
+                    cardClass: 'border-amber-300 bg-amber-50/70',
+                    badgeClass: 'bg-amber-100 text-amber-800 border border-amber-200'
+                };
+            }
+            if (normalized.includes('ผู้ช่วย')) {
+                return {
+                    badge: 'ผู้ช่วย',
+                    cardClass: 'border-sky-300 bg-sky-50/70',
+                    badgeClass: 'bg-sky-100 text-sky-800 border border-sky-200'
+                };
+            }
+            return {
+                badge: '',
+                cardClass: 'border-slate-200 bg-white',
+                badgeClass: 'bg-slate-100 text-slate-600 border border-slate-200'
+            };
+        }
+
+        function renderCheckInList() {
+            const container = document.getElementById('checkin-list-container');
+            container.innerHTML = '';
+
+            const query = document.getElementById('checkin-search').value.toLowerCase();
+            const filtered = employeesData.filter(emp => 
+                emp.name.toLowerCase().includes(query) || emp.code.toLowerCase().includes(query) ||
+                emp.nickname.toLowerCase().includes(query)
+            );
+
+            filtered.forEach(emp => {
+                const statuses = ['มา', 'สาย', 'ขาด', 'ลาป่วย', 'ลากิจ', 'ลาพักร้อน', 'ลา', 'ครึ่งวัน'];
+                const statusMap = { 'มา': 'มาทำงาน', 'สาย': 'สาย', 'ขาด': 'ขาดงาน', 'ลาป่วย': 'ลาป่วย', 'ลากิจ': 'ลากิจ', 'ลาพักร้อน': 'ลาพักร้อน', 'ลา': 'ลา', 'ครึ่งวัน': 'ครึ่งวัน' };
+                const reverseMap = { 'มาทำงาน': 'มา', 'สาย': 'สาย', 'ขาดงาน': 'ขาด', 'ลาป่วย': 'ลาป่วย', 'ลากิจ': 'ลากิจ', 'ลาพักร้อน': 'ลาพักร้อน', 'ลา': 'ลา', 'ครึ่งวัน': 'ครึ่งวัน' };
+                const currentShort = reverseMap[emp.status] || '';
+                const role = getEmployeeRoleStyle(emp.jobTitle || emp.positionTitle || '');
+
+                const card = document.createElement('div');
+                card.className = `p-4 rounded-2xl border shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition hover:border-slate-300 ${role.cardClass}`;
+                
+                let statusButtonsHTML = statuses.map(st => {
+                    let active = currentShort === st;
+                    let activeClass = '';
+                    if (active) {
+                        if (st === 'มา') activeClass = 'bg-emerald-600 text-white border-emerald-600 shadow-xs';
+                        else if (st === 'สาย') activeClass = 'bg-amber-500 text-white border-amber-500 shadow-xs';
+                        else if (st === 'ขาด') activeClass = 'bg-rose-600 text-white border-rose-600 shadow-xs';
+                        else if (st === 'ลาป่วย' || st === 'ลา') activeClass = 'bg-sky-500 text-white border-sky-500 shadow-xs';
+                        else if (st === 'ลากิจ') activeClass = 'bg-cyan-600 text-white border-cyan-600 shadow-xs';
+                        else if (st === 'ลาพักร้อน') activeClass = 'bg-orange-500 text-white border-orange-500 shadow-xs';
+                        else if (st === 'ครึ่งวัน') activeClass = 'bg-purple-600 text-white border-purple-600 shadow-xs';
+                    } else {
+                        activeClass = 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50';
+                    }
+
+                    let icon = 'fa-check';
+                    if (st === 'สาย') icon = 'fa-clock';
+                    if (st === 'ขาด') icon = 'fa-xmark';
+                    if (st === 'ลาป่วย') icon = 'fa-heart-pulse';
+                    if (st === 'ลากิจ' || st === 'ลา') icon = 'fa-calendar-minus';
+                    if (st === 'ลาพักร้อน') icon = 'fa-umbrella-beach';
+                    if (st === 'ครึ่งวัน') icon = 'fa-business-time';
+
+                    return `<button onclick="updateEmpStatus(${emp.id}, '${statusMap[st]}')" class="px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center space-x-1.5 transition ${activeClass}">
+                        <i class="fa-solid ${icon} text-[10px]"></i>
+                        <span>${st}</span>
+                    </button>`;
+                }).join('');
+
+                card.innerHTML = `
+                    <div class="flex items-center space-x-3 min-w-[240px]">
+                        <div class="w-10 h-10 rounded-full bg-slate-100 text-slate-700 font-bold flex items-center justify-center text-sm shrink-0">
+                            ${emp.name.charAt(0)}
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-slate-900 text-sm">${emp.name}</h4>
+                            <p class="text-xs text-slate-500">${emp.code} · ${emp.position}</p>
+                            ${role.badge ? `<span class="mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${role.badgeClass}">${role.badge}</span>` : ''}
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-1.5">
+                        ${statusButtonsHTML}
+                    </div>
+
+                    <div class="flex items-center space-x-3 w-full md:w-auto justify-between md:justify-end pt-2 md:pt-0 border-t md:border-t-0 border-slate-100">
+                        <div class="flex items-center space-x-2">
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" ${emp.ot ? 'checked' : ''} aria-label="${emp.name} ทำ OT" onchange="updateEmpOT(${emp.id}, this.checked)" class="sr-only peer">
+                                <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                            </label>
+                            <span id="ot-status-${emp.id}" class="text-xs font-bold text-slate-700">${emp.ot ? 'ทำ OT' : 'ไม่ทำ OT'}</span>
+                            <input type="number" value="${emp.otHours}" min="1" max="6" onchange="updateEmpOTHours(${emp.id}, this.value)" class="w-12 text-center py-1 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-indigo-500">
+                            <span class="text-xs text-slate-400">ชม.</span>
+                        </div>
+                        <input type="text" value="${emp.remark}" placeholder="หมายเหตุ..." onchange="updateEmpRemark(${emp.id}, this.value)" class="w-28 sm:w-36 px-3 py-1.5 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-indigo-500 text-slate-700">
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+            if (filtered.length === 0) {
+                const emptyMessage = document.createElement('div');
+                emptyMessage.className = 'bg-white p-8 rounded-2xl border border-slate-200 text-center text-sm text-slate-400';
+                emptyMessage.textContent = employeesData.length ? 'ไม่พบพนักงานที่ค้นหา' : 'ยังไม่มีรายชื่อพนักงานสำหรับเช็คชื่อ';
+                container.appendChild(emptyMessage);
+            }
+        }
+
+        // Update handlers for individual employees
+        function updateEmpStatus(id, newStatus) {
+            const emp = employeesData.find(e => e.id === id);
+            if (emp) {
+                emp.status = newStatus;
+                updateDashboardStats();
+                renderCheckInList();
+                if (!document.getElementById('view-employees').classList.contains('hidden')) {
+                    renderMaterialsEmployees();
+                }
+            }
+        }
+
+        function setAllEmployeesPresent() {
+            employeesData.forEach(emp => {
+                emp.status = 'มาทำงาน';
+            });
+            updateDashboardStats();
+            renderCheckInList();
+            showNotification(`ตั้งสถานะมาทำงานให้พนักงาน ${employeesData.length} คนแล้ว`);
+        }
+
+        function setAllEmployeesOvertime() {
+            employeesData.forEach(emp => {
+                emp.ot = true;
+            });
+            updateDashboardStats();
+            renderCheckInList();
+            showNotification(`ตั้งสถานะทำ OT ให้พนักงาน ${employeesData.length} คนแล้ว`);
+        }
+
+        function updateEmpOT(id, isChecked) {
+            const emp = employeesData.find(e => e.id === id);
+            if (emp) {
+                emp.ot = isChecked;
+                document.getElementById(`ot-status-${id}`).innerText = isChecked ? 'ทำ OT' : 'ไม่ทำ OT';
+                updateDashboardStats();
+            }
+        }
+
+        function updateEmpOTHours(id, hours) {
+            const emp = employeesData.find(e => e.id === id);
+            if (emp) {
+                emp.otHours = parseInt(hours) || 2;
+            }
+        }
+
+        function updateEmpRemark(id, remark) {
+            const emp = employeesData.find(e => e.id === id);
+            if (emp) {
+                emp.remark = remark;
+            }
+        }
+
+        // Save All Button Action
+        function saveAttendance() {
+            updateDashboardStats();
+            saveAttendanceHistory(formatDateKey(new Date()));
+            showNotification('บันทึกข้อมูลการเช็คชื่อทั้งหมดสำเร็จและอัปเดตประวัติวันนี้เรียบร้อย');
+        }
+
+        function exportAttendanceToExcel() {
+            if (!window.XLSX) {
+                showNotification('ไม่สามารถส่งออกได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ตแล้วลองอีกครั้ง');
+                return;
+            }
+
+            try {
+                const baseKey = historySelectedDate || formatDateKey(new Date());
+                const [year, month] = baseKey.split('-').map(Number);
+                const monthLabel = new Date(year, month - 1, 1).toLocaleDateString('th-TH', { month: 'long', year: 'numeric' });
+                const monthDays = new Date(year, month, 0).getDate();
+                const monthKey = `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}`;
+
+                const rows = [];
+                rows.push(['ประวัติการเช็คชื่อ', monthLabel]);
+                rows.push([]);
+
+                const header = ['พนักงาน', 'รหัสพนักงาน'];
+                for (let day = 1; day <= monthDays; day++) {
+                    header.push(String(day));
+                }
+                rows.push(header);
+
+                employeesData.forEach(emp => {
+                    const row = [emp.name, emp.code];
+                    for (let day = 1; day <= monthDays; day++) {
+                        const dateKey = `${monthKey}-${String(day).padStart(2, '0')}`;
+                        const record = (attendanceHistory[dateKey] || []).find(item => Number(item.id) === Number(emp.id));
+                        if (!record || !record.status) {
+                            row.push('');
+                            continue;
+                        }
+
+                        let value = record.status;
+                        if (record.status === 'มาทำงาน') {
+                            value = record.ot && Number(record.otHours || 0) >= 2 ? '10' : '8';
+                        }
+                        row.push(value);
+                    }
+                    rows.push(row);
+                });
+
+                const worksheet = XLSX.utils.aoa_to_sheet(rows);
+                worksheet['!cols'] = [
+                    { wch: 28 }, { wch: 18 }, ...Array.from({ length: monthDays }, () => ({ wch: 12 }))
+                ];
+
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, monthLabel.slice(0, 20) || 'ประวัติ');
+                const fileName = `attendance-history-${year}-${String(month).padStart(2, '0')}.xlsx`;
+                XLSX.writeFile(workbook, fileName);
+                showNotification('ส่งออกไฟล์ Excel ประวัติตารางรายวันเรียบร้อยแล้ว');
+            } catch (error) {
+                console.error('Excel export failed:', error);
+                showNotification('เกิดข้อผิดพลาดในการส่งออกไฟล์ Excel');
+            }
+        }
+
+        // Toast Notification System
+        function showNotification(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-message').innerText = msg;
+            toast.classList.remove('translate-y-24', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-24', 'opacity-0');
+            }, 3000);
+        }
+
+        // Initialize on load
+        window.onload = function() {
+            loadEmployeesData();
+            loadDepartmentData();
+            loadAttendanceHistory();
+            renderMaterialsEmployees();
+            renderCheckInList();
+            updateDashboardStats();
+            renderDashboardTable();
+            renderHistoryView(historySelectedDate);
+        };
+    </script>
+</body>
+</html>
