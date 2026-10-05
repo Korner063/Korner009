@@ -1,0 +1,17 @@
+services:
+  web:
+    image: nginx:1.27-alpine
+    container_name: base44-web
+    volumes:
+      # Serve the cloned source directly so edits appear on refresh.
+      - ./index.html:/usr/share/nginx/html/index.html:ro
+      - ./logo-dashboard.png:/usr/share/nginx/html/logo-dashboard.png:ro
+    ports:
+      - "3000:80"
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80/index.html"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
